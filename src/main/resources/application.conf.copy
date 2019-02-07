@@ -1,0 +1,60 @@
+{
+  # Kafka cluster configuration
+  kafka {
+    bootstrap {
+      servers = "localhost:9092"
+    }
+  }
+
+  akka {
+    loggers = ["akka.event.slf4j.Slf4jLogger"]
+    loglevel = "DEBUG"
+    logging-filter = "akka.event.slf4j.Slf4jLoggingFilter"
+
+    actor {
+      provider = remote
+
+      neuron-dispatcher {
+
+        type = Dispatcher
+        executor = "fork-join-executor"
+
+        # Configuration for the fork join pool
+        fork-join-executor {
+          # Min number of threads to cap factor-based parallelism number to
+          parallelism-min = 8
+          # Parallelism (threads) ... ceil(available processors * factor)
+          parallelism-factor = 8.0
+          # Max number of threads to cap factor-based parallelism number to
+          parallelism-max = 640
+        }
+
+        # throughput for default dispatcher, set to 1 for as fair as possible
+        throughput = 100
+      }
+
+      pinned-dispatcher {
+        executor = "thread-pool-executor"
+        type = PinnedDispatcher
+      }
+
+      deployment {
+        spikes {
+          dispatcher = neuron-dispatcher
+        }
+
+        pinned-spikes {
+          dispatcher = pinned-dispatcher
+        }
+      }
+    }
+
+    remote {
+      artery {
+        enabled = on
+        canonical.hostname = "192.168.1.153"
+        canonical.port = 2553
+      }
+    }
+  }
+}

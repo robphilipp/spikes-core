@@ -1,0 +1,7 @@
+.idea/
+target/
+analyses/old_analyses
+test-output
+.DS_Store
+.vscode
+analyses/**
