@@ -314,6 +314,28 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  implicit object IntrinsicPlasticityUpdatedJsonFormat extends RootJsonFormat[IntrinsicPlasticityUpdated] {
+    import com.digitalcipher.spiked.logging.MessageNames.INTRINSIC_PLASTICITY_UPDATE
+
+    override def write(plasticity: IntrinsicPlasticityUpdated): JsValue = JsObject(INTRINSIC_PLASTICITY_UPDATE.name -> JsObject(
+      "neuron_id" -> JsString(plasticity.neuronId),
+      "timestamp" -> plasticity.timestamp.toJson,
+      "plasticity" -> plasticity.intrinsicPlasticity.toJson
+    ))
+
+    override def read(value: JsValue): IntrinsicPlasticityUpdated = {
+      value.asJsObject.getFields("neuron_id", "timestamp", "plasticity") match {
+        case Seq(JsString(neuronId), JsNumber(timestamp), JsNumber(plasticity)) =>
+          IntrinsicPlasticityUpdated(
+            neuronId = neuronId,
+            timestamp = Milliseconds(timestamp),
+            intrinsicPlasticity = Millivolts(plasticity)
+          )
+        case _ => deserializationError("(neuron_id, timestamp, plasticity)")
+      }
+    }
+  }
+
   implicit object SignalReceivedJsonFormat extends RootJsonFormat[SignalReceived] {
     import com.digitalcipher.spiked.logging.MessageNames.SIGNAL_RECEIVED
 

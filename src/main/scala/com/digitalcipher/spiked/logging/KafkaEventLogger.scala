@@ -3,6 +3,7 @@ package com.digitalcipher.spiked.logging
 import cakesolutions.kafka.{KafkaProducer, KafkaProducerRecord}
 import cakesolutions.kafka.KafkaProducer.Conf
 import MessageNames._
+import akka.actor.ActorSystem
 import com.digitalcipher.spiked.logging.messages._
 import com.typesafe.config.Config
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -65,6 +66,7 @@ private[logging] class KafkaEventLogger {
       case connection: NetworkConnected => producerRecord(CONNECT.name, connection.toJson.compactPrint)
       case registration: PreSynapticRegistration => producerRecord(REGISTER.name, registration.toJson.compactPrint)
       case weightUpdated: StdpWeightUpdated => producerRecord(WEIGHT_UPDATE.name, weightUpdated.toJson.compactPrint)
+      case intrinsicPlasticityUpdated: IntrinsicPlasticityUpdated => producerRecord(INTRINSIC_PLASTICITY_UPDATE.name, intrinsicPlasticityUpdated.toJson.compactPrint)
       case signalReceived: SignalReceived => producerRecord(SIGNAL_RECEIVED.name, signalReceived.toJson.compactPrint)
       case update: MembranePotentialUpdate => producerRecord(MEMBRANE_POTENTIAL_UPDATE.name, update.toJson.compactPrint)
       case phaseTransition: PhaseTransition => producerRecord(PHASE_TRANSITION.name, phaseTransition.toJson.compactPrint)
@@ -92,5 +94,7 @@ private[logging] class KafkaEventLogger {
 }
 
 object KafkaEventLogger {
-  case class KafkaConfiguration(config: Config, topic: String)
+  case class KafkaConfiguration(actorSystem: ActorSystem, config: Config, topic: String) {
+    def runId: String = actorSystem.name
+  }
 }
