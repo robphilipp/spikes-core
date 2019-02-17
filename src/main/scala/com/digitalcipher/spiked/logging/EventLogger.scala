@@ -34,7 +34,6 @@ object EventLogger {
     */
   def withLogging(kafkaConfiguration: KafkaConfiguration): Unit = {
     kafkaEventLoggers += (kafkaConfiguration.runId -> new KafkaEventLogger().withLogging(kafkaConfiguration.config, kafkaConfiguration.topic))
-//    kafkaEventLoggers += (kafkaConfiguration.topic -> new KafkaEventLogger().withLogging(kafkaConfiguration.config, kafkaConfiguration.topic))
   }
 
   /**

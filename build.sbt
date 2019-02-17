@@ -20,7 +20,7 @@ enablePlugins(JavaAppPackaging)
 //
 lazy val commonSettings = Seq(
   organization := "com.digitalcipher.spiked",
-  version := "0.0.4-snapshot",
+  version := "0.0.6-snapshot",
   scalaVersion := "2.12.7"
 )
 
