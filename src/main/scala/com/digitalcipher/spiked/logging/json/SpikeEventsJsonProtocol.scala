@@ -1,13 +1,16 @@
 package com.digitalcipher.spiked.logging.json
 
+import akka.actor.ActorRef
+import com.digitalcipher.spiked.construction.description.LearningFunctionDescription
 import com.digitalcipher.spiked.logging.messages._
+import com.digitalcipher.spiked.neurons.Neuron.Connect
 import com.digitalcipher.spiked.topology.NeuronType
 import com.digitalcipher.spiked.topology.coords.spatial.Points
 import com.digitalcipher.spiked.topology.coords.spatial.Points.Cartesian
 import spray.json.DefaultJsonProtocol
 import squants.Time
 import squants.electro.{ElectricPotential, Microvolts, Millivolts, Volts}
-import squants.space.Microns
+import squants.space.{Length, Microns}
 import squants.time._
 
 /**
@@ -104,14 +107,38 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def read(value: JsValue): NetworkTopology = value.asJsObject.getFields(TOPOLOGY.name) match {
       case Seq(neuron) => neuron.asJsObject.getFields("neuron_id", "location") match {
-          case Seq(JsString(neuronId), location) => NetworkTopology(neuronId, location.convertTo[Cartesian])
-          case _ => deserializationError("(neuron ID, location) expected")
-        }
+        case Seq(JsString(neuronId), location) => NetworkTopology(neuronId, location.convertTo[Cartesian])
+        case _ => deserializationError("(neuron ID, location) expected")
+      }
       case _ => deserializationError("NetworkTopology expected")
     }
   }
 
+  implicit object ConnectedPostSynapticJsonFormat extends RootJsonFormat[ConnectedPostSynaptic] {
+
+    import com.digitalcipher.spiked.logging.MessageNames.CONNECT
+
+    override def write(connection: ConnectedPostSynaptic): JsValue = JsObject(CONNECT.name -> JsObject(
+      "pre_synaptic" -> JsString(connection.preSynapticId),
+      "post_synaptic" -> JsString(connection.postSynapticId),
+      "signal_delay" -> connection.signalDelay.toJson
+    ))
+
+    override def read(value: JsValue): ConnectedPostSynaptic = {
+      value.asJsObject.getFields("pre_synaptic", "post_synaptic", "signal_delay") match {
+        case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(signalDelay)) =>
+          ConnectedPostSynaptic(
+            preSynapticId = preSynapticId,
+            postSynapticId = postSynapticId,
+            signalDelay = Milliseconds(signalDelay)
+          )
+        case _ => deserializationError("(neuron_id, timestamp, plasticity)")
+      }
+    }
+  }
+
   implicit object StdpHardLimitLearningFunctionJsonFormat extends RootJsonFormat[StdpHardLimitLearningFunction] {
+
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
     override def write(learning: StdpHardLimitLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
@@ -142,6 +169,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object StdpSoftLimitLearningFunctionJsonFormat extends RootJsonFormat[StdpSoftLimitLearningFunction] {
+
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
     override def write(learning: StdpSoftLimitLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
@@ -172,12 +200,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object StdpAlphaLearningFunctionJsonFormat extends RootJsonFormat[StdpAlphaLearningFunction] {
+
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
     override def write(learning: StdpAlphaLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
       "baseline" -> JsNumber(learning.baseline),
       "learning_rate" -> JsNumber(learning.learningRate),
-      "time_constant" ->  learning.timeConstant.toJson
+      "time_constant" -> learning.timeConstant.toJson
     ))
 
     override def read(value: JsValue): StdpAlphaLearningFunction = value.asJsObject.getFields(LEARNING.name) match {
@@ -199,6 +228,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object NeuronConnectionJsonFormat extends RootJsonFormat[NetworkConnected] {
+
     import com.digitalcipher.spiked.logging.MessageNames.CONNECT
 
     override def write(connected: NetworkConnected): JsValue = JsObject(CONNECT.name -> JsObject(
@@ -245,6 +275,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object PreSynapticRegistrationJsonFormat extends RootJsonFormat[PreSynapticRegistration] {
+
     import com.digitalcipher.spiked.logging.MessageNames.REGISTER
 
     override def write(registration: PreSynapticRegistration): JsValue = JsObject(REGISTER.name -> JsObject(
@@ -264,6 +295,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object StdpWeightUpdatedJsonFormat extends RootJsonFormat[StdpWeightUpdated] {
+
     import com.digitalcipher.spiked.logging.MessageNames.WEIGHT_UPDATE
 
     override def write(updated: StdpWeightUpdated): JsValue = JsObject(WEIGHT_UPDATE.name -> JsObject(
@@ -315,6 +347,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object IntrinsicPlasticityUpdatedJsonFormat extends RootJsonFormat[IntrinsicPlasticityUpdated] {
+
     import com.digitalcipher.spiked.logging.MessageNames.INTRINSIC_PLASTICITY_UPDATE
 
     override def write(plasticity: IntrinsicPlasticityUpdated): JsValue = JsObject(INTRINSIC_PLASTICITY_UPDATE.name -> JsObject(
@@ -337,6 +370,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object SignalReceivedJsonFormat extends RootJsonFormat[SignalReceived] {
+
     import com.digitalcipher.spiked.logging.MessageNames.SIGNAL_RECEIVED
 
     override def write(signal: SignalReceived): JsValue = JsObject(SIGNAL_RECEIVED.name -> JsObject(
@@ -380,6 +414,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object MembranePotentialUpdateJsonFormat extends RootJsonFormat[MembranePotentialUpdate] {
+
     import com.digitalcipher.spiked.logging.MessageNames.MEMBRANE_POTENTIAL_UPDATE
 
     override def write(update: MembranePotentialUpdate): JsValue = JsObject(MEMBRANE_POTENTIAL_UPDATE.name -> JsObject(
@@ -419,6 +454,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object SpikedJsonFormat extends RootJsonFormat[Spiked] {
+
     import com.digitalcipher.spiked.logging.MessageNames.SPIKED
 
     override def write(spike: Spiked): JsValue = JsObject(SPIKED.name -> JsObject(
@@ -443,6 +479,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   implicit object PhaseTransitionJsonFormat extends RootJsonFormat[PhaseTransition] {
+
     import com.digitalcipher.spiked.logging.MessageNames.PHASE_TRANSITION
 
     override def write(transition: PhaseTransition): JsValue = JsObject(PHASE_TRANSITION.name -> JsObject(
@@ -473,4 +510,5 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
       case _ => deserializationError("PhaseTransition expected")
     }
   }
+
 }
