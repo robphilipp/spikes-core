@@ -283,6 +283,18 @@ object NetworkBuilder {
       (count, neuronType) => count + (neuronType -> (count.getOrElse(neuronType, 0) + 1))
     }
   }
+
+  /**
+    * Message for creating a remote actor system
+    * @param name The name of the actor system to create
+    */
+  case class CreateActorSystem(name: String)
+
+  /**
+    * Message for destroying a remote actor system
+    * @param name The name of the actor system to destroy
+    */
+  case class DestroyActorSystem(name: String)
 }
 
 //case class TestMessage()

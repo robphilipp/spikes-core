@@ -307,6 +307,12 @@ object Neuron {
   def noise(deltaTime: Time, magnitude: ElectricPotential, random: Random): ElectricPotential =
     magnitude * math.sqrt(deltaTime.toMilliseconds) * random.nextGaussian()
 
+  // todo One of the reasons the intrinsic plasticity, as modelled, doesn't seem to work correctly,
+  //    is that it is missing the homeostatic part. What is currently modelled is the long-term
+  //    potentiation of intrinsic excitability (LTP-IE). In homeostatic intrinsic plasticity, the
+  //    neuron attempts to maintain its level of excitability. In this case, prolonged spiking
+  //    tends to reduce the IE, where as prolonged periods of inactivity tends to increase the IE.
+  //    See http://www.scholarpedia.org/article/Intrinsic_plasticity.
   /**
     * Decays the intrinsic plasticity and returns the updated value
     * <p>
@@ -323,7 +329,7 @@ object Neuron {
   /**
     * Updates the intrinsic plasticity that is adjusted each time the neuron fires.
     * <p>
-    *   b(t,,n+1,,) = b(t,,n,,) + η exp(-(b(t,,n,,) + b,,0,,)
+    *   b(t,,n+1,,) = b(t,,n,,) + η exp(-(b(t,,n,,) + b,,0,,))
     * <p>
     * @param plasticity The current value of the intrinsic plasticity, b(t,,n,,)
     * @param learningRate The intrinsic plasticity learning rate, η
