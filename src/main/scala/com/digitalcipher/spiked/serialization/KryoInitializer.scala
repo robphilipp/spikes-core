@@ -14,7 +14,7 @@ import com.digitalcipher.spiked.construction.description.{BistableIntegratorPara
 import com.digitalcipher.spiked.topology.coords.spatial.Coordinates.Cartesian
 import com.digitalcipher.spiked.construction.description._
 import com.romix.scala.serialization.kryo.ScalaImmutableAbstractMapSerializer
-import squants.electro.ElectricPotential
+import squants.electro.{ElectricPotential, MagneticFlux}
 import squants.motion.Velocity
 import squants.space.Length
 import squants.time.{Frequency, Time}
@@ -91,6 +91,8 @@ class KryoInitializer {
     kryo.register(classOf[Length], new LengthSerializer, 72)
     kryo.register(classOf[ElectricPotential], new ElectricPotentialSerializer, 73)
     kryo.register(classOf[Frequency], new FrequencySerializer, 74)
+    kryo.register(classOf[Frequency], new FrequencySerializer, 74)
+    kryo.register(classOf[MagneticFlux], new MagneticFluxSerializer, 75)
 
     // scala types
     kryo.register(classOf[(Any, Any)], 200)
@@ -142,6 +144,9 @@ class KryoInitializer {
     //    kryo.register(classOf[SerializationTestMessage], 124)
     //    kryo.register(classOf[CreateTestMessage], 1240)
     //    // --------
+
+    kryo.register(classOf[SignalReleaseProbabilityDescription], 130)
+    kryo.register(classOf[SignalTimingFunction], 131)
 
     kryo.register(classOf[Cartesian], 140)
 

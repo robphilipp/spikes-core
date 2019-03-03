@@ -4,7 +4,7 @@ import java.io.NotSerializableException
 
 import com.esotericsoftware.kryo.io.{Input, Output}
 import com.esotericsoftware.kryo.{Kryo, Serializer}
-import squants.electro.ElectricPotential
+import squants.electro.{ElectricPotential, MagneticFlux}
 import squants.motion.Velocity
 import squants.space.Length
 import squants.time.{Frequency, Time}
@@ -14,8 +14,8 @@ import squants.time.{Frequency, Time}
   */
 class VelocitySerializer extends Serializer[Velocity] {
   override def read(kryo: Kryo, input: Input, clazz: Class[Velocity]): Velocity = {
-    val velocity = Velocity( input.readString() )
-    if( velocity.isFailure ) throw new NotSerializableException(clazz.getName) else velocity.get
+    val velocity = Velocity(input.readString())
+    if (velocity.isFailure) throw new NotSerializableException(clazz.getName) else velocity.get
   }
 
   override def write(kryo: Kryo, output: Output, velocity: Velocity): Unit = {
@@ -25,8 +25,8 @@ class VelocitySerializer extends Serializer[Velocity] {
 
 class TimeSerializer extends Serializer[Time] {
   override def read(kryo: Kryo, input: Input, clazz: Class[Time]): Time = {
-    val time = Time( input.readString() )
-    if( time.isFailure ) throw new NotSerializableException(clazz.getName) else time.get
+    val time = Time(input.readString())
+    if (time.isFailure) throw new NotSerializableException(clazz.getName) else time.get
   }
 
   override def write(kryo: Kryo, output: Output, time: Time): Unit = {
@@ -36,8 +36,8 @@ class TimeSerializer extends Serializer[Time] {
 
 class LengthSerializer extends Serializer[Length] {
   override def read(kryo: Kryo, input: Input, clazz: Class[Length]): Length = {
-    val length = Length( input.readString() )
-    if( length.isFailure ) throw new NotSerializableException(clazz.getName) else length.get
+    val length = Length(input.readString())
+    if (length.isFailure) throw new NotSerializableException(clazz.getName) else length.get
   }
 
   override def write(kryo: Kryo, output: Output, length: Length): Unit = {
@@ -47,8 +47,8 @@ class LengthSerializer extends Serializer[Length] {
 
 class ElectricPotentialSerializer extends Serializer[ElectricPotential] {
   override def read(kryo: Kryo, input: Input, clazz: Class[ElectricPotential]): ElectricPotential = {
-    val electricPotential = ElectricPotential( input.readString() )
-    if( electricPotential.isFailure ) throw new NotSerializableException(clazz.getName) else electricPotential.get
+    val electricPotential = ElectricPotential(input.readString())
+    if (electricPotential.isFailure) throw new NotSerializableException(clazz.getName) else electricPotential.get
   }
 
   override def write(kryo: Kryo, output: Output, electricPotential: ElectricPotential): Unit = {
@@ -58,11 +58,22 @@ class ElectricPotentialSerializer extends Serializer[ElectricPotential] {
 
 class FrequencySerializer extends Serializer[Frequency] {
   override def read(kryo: Kryo, input: Input, clazz: Class[Frequency]): Frequency = {
-    val frequency = Frequency( input.readString() )
-    if( frequency.isFailure ) throw new NotSerializableException(clazz.getName) else frequency.get
+    val frequency = Frequency(input.readString())
+    if (frequency.isFailure) throw new NotSerializableException(clazz.getName) else frequency.get
   }
 
   override def write(kryo: Kryo, output: Output, frequency: Frequency): Unit = {
     output.writeString(frequency.toString)
+  }
+}
+
+class MagneticFluxSerializer extends Serializer[MagneticFlux] {
+  override def read(kryo: Kryo, input: Input, clazz: Class[MagneticFlux]): MagneticFlux = {
+    val flux = MagneticFlux(input.readString())
+    if (flux.isFailure) throw new NotSerializableException(clazz.getName) else flux.get
+  }
+
+  override def write(kryo: Kryo, output: Output, flux: MagneticFlux): Unit = {
+    output.writeString(flux.toString)
   }
 }
