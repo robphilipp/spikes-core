@@ -129,6 +129,7 @@ class KryoInitializer {
     kryo.register(classOf[LearningFunctionDescription], 106)
     kryo.register(classOf[StdpHardLimitLearningParams], 107)
     kryo.register(classOf[StdpSoftLimitLearningParams], 108)
+    kryo.register(classOf[StdpAlphaLearningParams], 109)
     kryo.register(classOf[IdQuery], 110)
 
     kryo.register(classOf[InitializeTime], 130)
