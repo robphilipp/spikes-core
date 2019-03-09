@@ -2,7 +2,7 @@ package com.digitalcipher.spiked.construction
 
 import akka.actor.{Actor, ActorRef, Props}
 import akka.util.Timeout
-import com.digitalcipher.spiked.construction.NetworkBuilder.{NetworkFromDescription, neuronTypeCount}
+import com.digitalcipher.spiked.construction.NetworkBuilder.{NetworkFromDescription, RemoteGroupInfo, neuronTypeCount}
 import com.digitalcipher.spiked.logging._
 import com.digitalcipher.spiked.logging.messages._
 import com.digitalcipher.spiked.neurons.Neuron
@@ -55,7 +55,7 @@ import scala.concurrent.duration._
   *
   * Created by rob on 9/11/16.
   */
-class NetworkBuilder(val timeFactor: Int) extends Actor {
+class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteGroupInfo]) extends Actor {
 
   // send messages with futures requires an execution context, and by importing this, the implicit values are supplied
   // to the method (timeout, execution context (i.e. this actor's dispatcher))
@@ -184,6 +184,7 @@ class NetworkBuilder(val timeFactor: Int) extends Actor {
         (description.groupId, neuronCreator)
 
       case remote: RemoteGroupParams =>
+        val port: Int = groupActorSystems.get(description.groupId).map(info => info.port).getOrElse(remote.port)
         // create the remote neuron creator
         import akka.actor.{Address, Deploy}
         import akka.remote.RemoteScope
@@ -191,7 +192,7 @@ class NetworkBuilder(val timeFactor: Int) extends Actor {
           protocol = NetworkBuilder.AKKA_PROTOCOL,
           system = context.system.name,
           host = remote.host,
-          port = remote.port
+          port = port
         )
         val props = Props[NeuronCreator].withDeploy(Deploy(scope = RemoteScope(remoteAddress)))
         val neuronCreator = context.actorOf(props = props, name = description.groupId)
@@ -270,7 +271,7 @@ object NetworkBuilder {
     *                   simulation (i.e. if timeFactor=10 then 10 seconds of simulation is 1 second of real time).
     * @return The [[Props]] for the actor
     */
-  def props(timeFactor: Int): Props = Props(new NetworkBuilder(timeFactor))
+  def props(timeFactor: Int, groupActorSystems: Map[String, RemoteGroupInfo]): Props = Props(new NetworkBuilder(timeFactor, groupActorSystems))
 
   /**
     * Counts the number of neuron of each type
@@ -295,6 +296,14 @@ object NetworkBuilder {
     * @param name The name of the actor system to destroy
     */
   case class DestroyActorSystem(name: String)
+
+  /**
+    * Holds the actor reference and the port for the remote group
+    * @param systemManager The actor reference the remote system manager
+    * @param port The port on which the remote-group system listens (this will be different from the
+    *             port on which the manager listens; it is assigned when the remote group is created)
+    */
+  case class RemoteGroupInfo(systemManager: ActorRef, port: Int)
 }
 
 //case class TestMessage()
