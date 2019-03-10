@@ -41,6 +41,11 @@ private[logging] class FileEventLogger(val runId: String) {
     logger.addAppender(fileAppender.asInstanceOf[Appender[ILoggingEvent]])
   }
 
+  def stopLogger(): Unit = {
+    val loggerContext: LoggerContext = org.slf4j.LoggerFactory.getILoggerFactory.asInstanceOf[LoggerContext]
+    EVENTS.foreach(event => loggerContext.getLogger(loggerName(runId, event)).detachAndStopAllAppenders())
+  }
+
   /**
     * Sets up logging programmatically instead of using a `logback` configuration file
     *

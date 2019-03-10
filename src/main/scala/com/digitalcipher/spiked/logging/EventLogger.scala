@@ -49,4 +49,16 @@ object EventLogger {
     fileEventLoggers.get(runId).foreach(logger => logger.log(runId, messageSupplier))
     kafkaEventLoggers.get(runId).foreach(logger => logger.log(messageSupplier))
   }
+
+  /**
+    * Removes the logger form the map
+    * @param runId The ID of the run that is being logged
+    */
+  def removeLogger(runId: String): Unit = {
+    fileEventLoggers.get(runId).foreach(logger => {
+      logger.stopLogger()
+      fileEventLoggers -= runId
+    })
+    kafkaEventLoggers -= runId
+  }
 }
