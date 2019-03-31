@@ -99,6 +99,8 @@ private[logging] class FileEventLogger(val runId: String) {
     // we only want to create the message once
     if (isConfigured && this.runId.equals(runId)) {
       supplier() match {
+          // todo change the loggers to either 'info', or allow the log-level to be set in the config file so that
+          //      the logging level of the events can be set
         case summary: NetworkSummary => networkInfoLogger.debug(summary.toString)
         case topology: NetworkTopology => networkInfoLogger.debug(topology.toString)
         case learning: StdpHardLimitLearningFunction => networkInfoLogger.debug(learning.toString)

@@ -14,9 +14,9 @@ import scala.collection.mutable
 import scala.util.matching.Regex
 
 // todo network should hold an actor-reference to the groups, and the groups should be what communicates for the
-// todo   the individual neurons. That way, when sending a message to the network that is intended to be broadcast
-// todo   to all the neurons, one message is sent to each group, and the group (which is local to the neurons in that
-// todo   group) forwards, and possibly filters or enriches, the message to each neuron.
+//      the individual neurons. That way, when sending a message to the network that is intended to be broadcast
+//      to all the neurons, one message is sent to each group, and the group (which is local to the neurons in that
+//      group) forwards, and possibly filters or enriches, the message to each neuron.
 /**
   * Represents the network of neurons. Neurons must first be added to the network by sending a message to the network:
   * <ol>
