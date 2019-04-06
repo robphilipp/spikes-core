@@ -1,6 +1,7 @@
 package com.digitalcipher.spiked.apputils
 
 import com.typesafe.config.Config
+import org.slf4j.LoggerFactory
 
 /**
   * Immutable.
@@ -10,6 +11,7 @@ import com.typesafe.config.Config
   * @param ports A list of the available ports
   */
 case class RemotingPortManager(ports: List[Int]) {
+  private val logger = LoggerFactory.getLogger("spikes-core-remoting-port-manager")
 
   var availablePorts: List[Int] = ports
   var usedPorts: Map[String, Int] = Map()
@@ -21,7 +23,7 @@ case class RemotingPortManager(ports: List[Int]) {
     * @return [[Some]] port; or [[None]] in no ports are available
     */
   def checkOutRemotingPort(systemName: String): Option[Int] = {
-    availablePorts
+    val port = availablePorts
       .diff(usedPorts.values.toList)
       .headOption
       .map(port => {
@@ -29,6 +31,13 @@ case class RemotingPortManager(ports: List[Int]) {
         availablePorts = availablePorts.tail
         port
       })
+
+    logger.info(
+      "checked out remoting port; actor-system name: {}; assigned port: {}; used ports: {}; available ports: {}",
+      systemName, port.map(p => s"$p").getOrElse("[none]"), usedPorts.size.toString, availablePorts.size.toString
+    )
+
+    port
   }
 
   /**
@@ -38,12 +47,15 @@ case class RemotingPortManager(ports: List[Int]) {
     * @return
     */
   def returnRemotingPort(systemName: String): Unit = {
-    usedPorts
-      .get(systemName)
-      .foreach(port => {
+    val port = usedPorts.get(systemName)
+    port.foreach(port => {
         availablePorts = availablePorts :+ port
         usedPorts -= systemName
-      })
+    })
+    logger.info(
+      "returned remoting port; actor-system name: {}; port: {}; used ports: {}; available ports: {}",
+      systemName, port.map(p => s"$p").getOrElse("[none]"), usedPorts.size.toString, availablePorts.size.toString
+    )
   }
 
   /**
@@ -58,7 +70,10 @@ case class RemotingPortManager(ports: List[Int]) {
         action()
 
         returnRemotingPort(systemName)
-        println(s"Freed port used by actor system; port: $port; system: $systemName")
+        logger.info(
+          "returned remoting port and performed requested action; actor-system name: {}; port: {}; used ports: {}; available ports: {}",
+          systemName, port.toString, usedPorts.size.toString, availablePorts.size.toString
+        )
       })
   }
 }
@@ -75,7 +90,6 @@ object RemotingPortManager {
     *         when the actor-provider is not set to remote
     */
   def parseRemotingPortsFrom(config: Config): Option[List[Int]] = {
-    println("got to remote ports")
     if (config.getString("akka.actor.provider") == "remote" && config.hasPath("remoting-ports")) {
       import scala.collection.JavaConverters._
       val portRange = raw"([0-9]+)\.\.([0-9]+)".r

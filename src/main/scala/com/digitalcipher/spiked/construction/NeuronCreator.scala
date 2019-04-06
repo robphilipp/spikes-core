@@ -1,12 +1,12 @@
 package com.digitalcipher.spiked.construction
 
 import akka.actor.{Actor, ActorRef}
+import akka.event.Logging
 import com.digitalcipher.spiked.construction.NeuronCreator._
-import com.digitalcipher.spiked.construction.description.NeuronDescription
+import com.digitalcipher.spiked.construction.description.{NeuronDescription, _}
 import com.digitalcipher.spiked.neurons.weights.decay.{Exponential, NoDecay}
 import com.digitalcipher.spiked.neurons.weights.limit.{Bounded, Unbounded, WeightLimiterFunction}
 import com.digitalcipher.spiked.neurons.{BistableIntegrator, MonostableIntegrator, Neuron, SignalReleaseProbability}
-import com.digitalcipher.spiked.construction.description._
 import squants.Time
 
 /**
@@ -14,6 +14,7 @@ import squants.Time
   * Created by rob on 7/16/17.
   */
 class NeuronCreator extends Actor {
+  private val logging = Logging(context.system, this)
 
   var timeFactor: Int = 1
 
@@ -142,7 +143,8 @@ class NeuronCreator extends Actor {
   }
 
   override def receive: Receive = {
-    case CreateTestMessage(message) => println(s"received create-test message: $message")
+    case CreateTestMessage(message) =>
+      logging.info("received test message; message: {}", message)
 
     case SimulationTimeFactor(factor) => timeFactor = factor
 
@@ -150,7 +152,8 @@ class NeuronCreator extends Actor {
 
     case CreateNeuron(description) => sender() ! convert(description)
 
-    case _ => println(s"received invalid request")
+    case _ =>
+      logging.error("received invalid message type")
   }
 }
 

@@ -9,6 +9,7 @@ import com.digitalcipher.spiked.construction.NetworkBuilder.{CreateActorSystem, 
 import com.digitalcipher.spiked.construction.description.{GroupDescription, NetworkDescription, RemoteGroupParams}
 import com.digitalcipher.spiked.construction.parsing.DnaParser
 import com.digitalcipher.spiked.neurons.SignalClock
+import org.slf4j.LoggerFactory
 import squants.Time
 
 import scala.concurrent.{Await, Future}
@@ -39,6 +40,7 @@ object SpikesAppUtils {
                    timeFactor: Int,
                    dnaFilename: String,
                    reparseReport: Boolean = false): Either[List[String], (ActorRef, Map[String, RemoteGroupInfo])] = {
+    val logger = LoggerFactory.getLogger("spikes-core-build-network")
     var source = None: Option[BufferedSource]
     try {
       source = Some(Source.fromFile(dnaFilename))
@@ -90,14 +92,14 @@ object SpikesAppUtils {
 
               // send message to build the network from its descriptions
               import scala.concurrent.duration._
-              println("sending request to build network")
+              logger.debug("sending request to build network")
               val networkFuture = ask(networkBuilder, NetworkFromDescription(description, s"spikes.$runId"))(Timeout(10 seconds))
                 .mapTo[Future[ActorRef]]
                 .flatten
 
               val network: ActorRef = Await.result(networkFuture.mapTo[ActorRef], 10 seconds)
-              println(networkFuture)
-              println(s"network actor-ref: ${network.path.name}")
+              logger.debug("network future: {}", networkFuture)
+              logger.info("created spikes neural network actor; actor name: {}", network.path.name)
               Right((network, remoteGroups))
             })
             .getOrElse(Left(List(s"Unable to parse the DNA file; filename: $dnaFilename")))
@@ -123,6 +125,8 @@ object SpikesAppUtils {
   def createActorSystemsForRemoteGroups(name: String,
                                         groups: Iterable[GroupDescription],
                                         actorSystem: ActorSystem): Map[String, RemoteGroupInfo] = {
+    val logger = LoggerFactory.getLogger("spikes-core-create-actor-system")
+
     import scala.concurrent.duration._
     groups
       // only need to deal with remote groups here
@@ -137,13 +141,13 @@ object SpikesAppUtils {
         )
 
         val actorPath = s"${remoteAddress.toString}/user/system_manager"
-        printf(s"requesting creation of remote actor system; name: $actorPath")
+        logger.debug("requesting creation of remote actor system; actor-system name: {}", actorPath)
         val selection = actorSystem.actorSelection(actorPath)
         import akka.pattern.ask
         val actorRef = Await.result(selection.resolveOne(10 seconds), 10 seconds)
         val createFuture = ask(actorRef, CreateActorSystem(name))(Timeout(10 seconds))
         val port = Await.result(createFuture.mapTo[Int], 10 seconds)
-        println(s"created remote actor; remote name: $actorPath; port: $port")
+        logger.info("created remote actor system; actor-system name: {}; bound port: {}", actorPath, port)
         group.groupId -> RemoteGroupInfo(actorRef, port)
       })
       .toMap
@@ -172,8 +176,12 @@ object SpikesAppUtils {
     val dna = NetworkDescription.fragment(networkDescription)
 
     // test to ensure that the DNA parsed can be re-written and parsed
-    println(s"DNA fragment: $dna")
-    println(s"DNA frag rps: ${parser.parseDna(dna).map(description => NetworkDescription.fragment(description)).getOrElse("failed to reparse")}")
+    val logger = LoggerFactory.getLogger("spikes-core-reparse-report")
+    logger.debug("DNA fragment from network description;\n----------\n{}\n----------", dna)
+    logger.debug(
+      "DNA fragment after parsing and generating a new network description;\n----------\n{}\n----------",
+      parser.parseDna(dna).map(description => NetworkDescription.fragment(description)).getOrElse("failed to reparse")
+    )
   }
 
   // todo need to add a jvm shut-down hook so that when the jvm shuts down the system can notify the
@@ -192,7 +200,8 @@ object SpikesAppUtils {
                              remoteGroups: Map[String, RemoteGroupInfo],
                              remotingPortManager: RemotingPortManager): (Time, Time) => Unit = (start: Time, end: Time) => {
     system.terminate()
-    println(s"Stopped sending signals to input neurons; system: ${system.name}; elapsed time: ${end - start}")
+    val logger = LoggerFactory.getLogger("spikes-core-system-shutdown")
+    logger.info("Stopped sending signals to input neuron; actor-system name: {}; elapsed time: {}", system.name, (end - start).millis)
 
     remotingPortManager.returnRemotingPortAnd(
       system.name,

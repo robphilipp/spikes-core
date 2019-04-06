@@ -20,13 +20,17 @@ enablePlugins(JavaAppPackaging)
 //
 lazy val commonSettings = Seq(
   organization := "com.digitalcipher.spiked",
-  version := "0.0.21-snapshot",
+  version := "0.0.23-snapshot",
   scalaVersion := "2.12.8"
 )
 
 //
 // dependencies
 //
+lazy val akkaVersion = "2.5.22"
+lazy val kafkaCakeVersion = "2.1.0"
+lazy val logbackVersion = "1.2.3"
+
 lazy val app = (project in file(".")).
   settings(commonSettings: _*).
   settings(
@@ -43,18 +47,18 @@ lazy val app = (project in file(".")).
       "com.digitalcipher.spiked" % "spikes-utils_2.12" % "0.0.1-snapshot",
 
       // akka (2.5.9 previously)
-      "com.typesafe.akka" %% "akka-actor" % "2.5.20",
-      "com.typesafe.akka" %% "akka-slf4j" % "2.5.20",
-      "com.typesafe.akka" %% "akka-stream" % "2.5.20",
-      "com.typesafe.akka" %% "akka-remote" % "2.5.20",
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+      "com.typesafe.akka" %% "akka-remote" % akkaVersion,
 
       // kafka
-      "net.cakesolutions" %% "scala-kafka-client" % "2.1.0",
-      "net.cakesolutions" %% "scala-kafka-client-akka" % "2.1.0",
+      "net.cakesolutions" %% "scala-kafka-client" % kafkaCakeVersion,
+      "net.cakesolutions" %% "scala-kafka-client-akka" % kafkaCakeVersion,
 
       // logging
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "ch.qos.logback" % "logback-core" % "1.2.3",
+      "ch.qos.logback" % "logback-classic" % logbackVersion,
+      "ch.qos.logback" % "logback-core" % logbackVersion,
 
       // dimensions (provided by the util classes)
       "org.typelevel" %% "squants" % "1.4.0" % Provided,
