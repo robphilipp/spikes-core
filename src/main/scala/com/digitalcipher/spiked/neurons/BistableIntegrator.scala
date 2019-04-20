@@ -20,7 +20,7 @@ import scala.collection.immutable.HashMap
 /**
   * Bistable integrator.
   *
-  * Use the companion object [[BistableIntegrator]] `from(...)` method to construct an instance. The bistable integrator
+  * Use the companion object [[com.digitalcipher.spiked.neurons.BistableIntegrator]] `from(...)` method to construct an instance. The bistable integrator
   * neuron starts in the resting state, which is a stable equilibrium as long as the incoming current is less than the
   * firing threshold. A neuron in the resting state whose current exceeds the firing threshold enters the limit cycle
   * representing a tonic firing rate. It remains in the limit cycle until the current drops below the resting threshold.
@@ -47,7 +47,7 @@ import scala.collection.immutable.HashMap
   * @param weightNoiseMagnitude             The magnitude of the weight noise
   * @param intrinsicPlasticityLearningRate  The rate of learning for the intrinsic plasticity
   * @param intrinsicPlasticityBase          The base of the intrinsic learning
-  * @param intrinsicPlasticityDecayHalfLife The half-life of the intersic learning decay
+  * @param intrinsicPlasticityDecayHalfLife The half-life of the intrinsic learning decay
   */
 class BistableIntegrator(timeFactor: Int,
                          neuronId: String,
@@ -593,12 +593,12 @@ class BistableIntegrator(timeFactor: Int,
 }
 
 /**
-  * Companion object for [[BistableIntegrator]] class used for constructing validated instances
+  * Companion object for [[com.digitalcipher.spiked.neurons.BistableIntegrator]] class used for constructing validated instances
   */
 object BistableIntegrator {
 
   /**
-    * Constructs a [[BistableIntegrator]] wrapped in an [[ActorRef]] instance
+    * Constructs a [[com.digitalcipher.spiked.neurons.BistableIntegrator]] wrapped in an [[akka.actor.ActorRef]] instance
     *
     * @param id                   The unique ID of the neuron
     * @param timeFactor           The simulation time-factor (1 second simulation time is F seconds in real-time)
@@ -621,8 +621,8 @@ object BistableIntegrator {
     * @param weightNoiseMagnitude             The magnitude of the weight noise
     * @param intrinsicPlasticityLearningRate  The rate of learning for the intrinsic plasticity
     * @param intrinsicPlasticityBase          The base of the intrinsic learning
-    * @param intrinsicPlasticityDecayHalfLife The half-life of the intersic learning decay
-    * @return An [[ActorRef]] wrapping a [[BistableIntegrator]]
+    * @param intrinsicPlasticityDecayHalfLife The half-life of the intrinsic learning decay
+    * @return An [[akka.actor.ActorRef]] wrapping a [[com.digitalcipher.spiked.neurons.BistableIntegrator]]
     */
   def props(id: String,
             timeFactor: Int,
@@ -687,8 +687,8 @@ object BistableIntegrator {
   /**
     * The constant firing rate function
     *
-    * @param rate The firing rate when the neuron is in the limit-cylce (tonic firing rate)
-    * @return The constant [[Frequency]] specified
+    * @param rate The firing rate when the neuron is in the limit-cycle (tonic firing rate)
+    * @return The constant [[squants.time.Frequency]] specified
     */
   def defaultFiringRate(rate: Frequency): ElectricPotential => Frequency = (_: ElectricPotential) => rate
 
@@ -701,7 +701,7 @@ object BistableIntegrator {
     * ν(V) is the membrane-potential-dependent tonic frequency<br>
     * r,,min,, is the lowest tonic firing rate<br>
     * r,,max,, is the maximum tonic firing rate<br>
-    * V is the membrance potential<br>
+    * V is the membrane potential<br>
     * V,,off,, is the offset of the sigmoid's center (half max)<br>
     * V,,f,, is the flatness measure (1/slope)
     *
@@ -709,7 +709,7 @@ object BistableIntegrator {
     * @param maxRate  The maximum tonic firing rate
     * @param invSlope The measure of flatness (i.e. 1/slope)
     * @param offset   The offset of the center frequency
-    * @return The tonic firing rate as a [[Frequency]]
+    * @return The tonic firing rate as a [[squants.time.Frequency]]
     */
   def sigmoidFiringRate(minRate: Frequency,
                         maxRate: Frequency,
@@ -721,7 +721,7 @@ object BistableIntegrator {
     * Holds the bistable integrator's state-data
     *
     * @param processedSignals       Holds a list of the processed signals for calculating learning (i.e. weight adjustments)
-    * @param membranePotential      The current membrane potentional of the neuron
+    * @param membranePotential      The current membrane potential of the neuron
     * @param lastEvent              The time of the last event
     * @param lastFire               The time of the last fire (spike)
     * @param lastTransitionToRest   The time of the last transition from tonic spiking to the resting state

@@ -51,7 +51,7 @@ abstract class Environment(neurons: Seq[ActorRef],
   // capture the current time from which to reference elapsed time
   protected val start: Time = clock.now()
 
-  // set up the scheduler to stop sending signals to the input neurons
+  // set up the scheduler to send the message to stop sending signals to the input neurons
   context.system.scheduler.scheduleOnce(
     delay = (initialDelay + duration) * clock.timeFactor,
     receiver = self,

@@ -28,7 +28,7 @@ class BasicEnvironmentTest extends TestKit(ActorSystem(BasicEnvironmentTest.acto
   }
 
   "a basic environment" must {
-    "send period signals for a specified duration" in {
+    "send period signals for a specified duration to one of 10 neurons" in {
       val probes: Seq[TestProbe] = for(i <- 1 to 10) yield TestProbe(s"neuron-$i")
       import scala.concurrent.duration._
 
@@ -41,11 +41,55 @@ class BasicEnvironmentTest extends TestKit(ActorSystem(BasicEnvironmentTest.acto
         initialDelay = 0 seconds,
         period = 100 millis,
         duration = duration,
-        signals = (neurons, _) => Map(neurons(1) -> Millivolts(1))
+        signals = (neurons, _) => Map(neurons.head -> Millivolts(1))
       )
 
-      probes(1).receiveN(10, duration * timeFactor).foreach(signal => println(signal.toString))
-      probes(2).expectNoMessage()
+      // the first neuron should receive all the signals (as specified in the construction
+      // of the basic environment
+      val signals = probes.head.receiveN(10, duration * timeFactor).asInstanceOf[Seq[Signal]]
+      for((signal, i) <- signals.view.zipWithIndex) {
+        assert(signal.timestamp.within(Milliseconds(i * 100 - 30) to Milliseconds(i * 100 + 30)))
+        assert(signal.value == Millivolts(1))
+        assert(signal.preSynaptic == ActorRef.noSender)
+      }
+
+      // the remaining neurons should not get any signals
+      for(probe <- probes.tail) {
+        println(probe.testActor.path.name)
+        probe.expectNoMessage(100 millis)
+      }
+    }
+
+    "send one signal to each neuron" in {
+      val probes: Seq[TestProbe] = for(i <- 1 to 10) yield TestProbe(s"neuron-$i")
+      import scala.concurrent.duration._
+
+      val timeFactor = 1
+      val duration: FiniteDuration = 1.second
+      BasicEnvironment.from(
+        system = system,
+        neurons = probes.map(probe => probe.ref),
+        clock = SignalClock.nowWithTimeFactor(timeFactor),
+        initialDelay = 0 seconds,
+        period = 100 millis,
+        duration = duration,
+        signals = (neurons, _) => Map(neurons.head -> Millivolts(1))
+      )
+
+      // the first neuron should receive all the signals (as specified in the construction
+      // of the basic environment
+      val signals = probes.head.receiveN(10, duration * timeFactor).asInstanceOf[Seq[Signal]]
+      for((signal, i) <- signals.view.zipWithIndex) {
+        assert(signal.timestamp.within(Milliseconds(i * 100 - 30) to Milliseconds(i * 100 + 30)))
+        assert(signal.value == Millivolts(1))
+        assert(signal.preSynaptic == ActorRef.noSender)
+      }
+
+      // the remaining neurons should not get any signals
+      for(probe <- probes.tail) {
+        println(probe.testActor.path.name)
+        probe.expectNoMessage(100 millis)
+      }
     }
   }
 }

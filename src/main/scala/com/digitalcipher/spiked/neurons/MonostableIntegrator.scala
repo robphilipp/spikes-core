@@ -22,7 +22,7 @@ import scala.util.Random
 /**
   * Monostable integrator.
   *
-  * Use the companion object [[MonostableIntegrator]] `from(...)` method to construct an instance
+  * Use the companion object [[com.digitalcipher.spiked.neurons.MonostableIntegrator]] `from(...)` method to construct an instance
   *
   * @constructor Creates a neuron with the specified properties
   * @param timeFactor           The simulation time-factor (1 second simulation time is F seconds in real-time)
@@ -44,7 +44,7 @@ import scala.util.Random
   * @param weightNoiseMagnitude The magnitude of the weight noise
   * @param intrinsicPlasticityLearningRate The rate of learning for the intrinsic plasticity
   * @param intrinsicPlasticityBase The base of the intrinsic learning
-  * @param intrinsicPlasticityDecayHalfLife The half-life of the intersic learning decay
+  * @param intrinsicPlasticityDecayHalfLife The half-life of the intrinsic learning decay
   */
 class MonostableIntegrator(timeFactor: Int,
                            neuronId: String,
@@ -700,12 +700,12 @@ class MonostableIntegrator(timeFactor: Int,
 }
 
 /**
-  * Companion object for [[MonostableIntegrator]] class used for constructing validated instances
+  * Companion object for [[com.digitalcipher.spiked.neurons.MonostableIntegrator]] class used for constructing validated instances
   */
 object MonostableIntegrator {
 
   /**
-    * Constructs a [[MonostableIntegrator]] wrapped in an [[ActorRef]] instance
+    * Constructs a [[com.digitalcipher.spiked.neurons.MonostableIntegrator]] wrapped in an [[akka.actor.ActorRef]] instance
     *
     * @param id                   The unique ID of the neuron
     * @param timeFactor           The simulation time-factor (i.e. for a time factor of N, 1 second simulation time
@@ -721,7 +721,7 @@ object MonostableIntegrator {
     * @param conductanceSpeed     The axon conductance speed (which determines the signal delay)
     * @param inhibitory           `true` when the neuron is inhibitory (i.e. sends negative signals); `false` when neuron is
     *                             excitatory (default) and sends positive signals
-    * @return An [[ActorRef]] wrapping a [[MonostableIntegrator]]
+    * @return An [[akka.actor.ActorRef]] wrapping a [[com.digitalcipher.spiked.neurons.MonostableIntegrator]]
     */
   def props(id: String,
             timeFactor: Int,

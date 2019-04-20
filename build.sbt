@@ -70,16 +70,9 @@ lazy val app = (project in file(".")).
       "com.github.romix.akka" %% "akka-kryo-serialization" % "0.5.2",
 
       // testing
-//      "org.scalactic" %% "scalactic" % "3.0.1",
       "com.typesafe.akka" %% "akka-testkit" % "2.5.16" % Test,
       "org.scalatest" %% "scalatest" % "3.0.5" % Test
     ),
-
-//    unmanagedBase := baseDirectory.value,
-
-//    unmanagedJars ++= Seq(
-//      "../hashed-wheel-timer/build/libs/hashed-wheel-timer-0.0.1-SNAPSHOT.jar"
-//    )
   )
 
 // publishing to sonatype
@@ -105,6 +98,9 @@ ThisBuild / developers := List(
 ThisBuild / description := "Core classes for building spikes networks"
 ThisBuild / licenses := List("MIT" -> new URL("https://opensource.org/licenses/MIT"))
 ThisBuild / homepage := Some(url("https://github.com/robphilipp/spikes-core"))
+
+// mark as a snapshot for overwriting local m2 artifacts
+ThisBuild / isSnapshot := version.value.toLowerCase().endsWith("-snapshot")
 
 // Remove all additional repository other than Maven Central from POM
 ThisBuild / pomIncludeRepository := { _ => false }

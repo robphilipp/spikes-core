@@ -20,14 +20,14 @@ import scala.util.matching.Regex
 /**
   * Represents the network of neurons. Neurons must first be added to the network by sending a message to the network:
   * <ol>
-  * <li>[[AddInputNeuron]] to add an input/sensory neuron</li>
-  * <li>[[AddHiddenNeuron]] to add an hidden/computation neuron</li>
-  * <li>[[AddOutputNeuron]] to add an output/motor neuron</li>
+  * <li>[[com.digitalcipher.spiked.topology.Network.AddInputNeuron]] to add an input/sensory neuron</li>
+  * <li>[[com.digitalcipher.spiked.topology.Network.AddHiddenNeuron]] to add an hidden/computation neuron</li>
+  * <li>[[com.digitalcipher.spiked.topology.Network.AddOutputNeuron]] to add an output/motor neuron</li>
   * </ol>
   *
   * Once a neurons are added to the network, they can be connected by sending a message to the network:
   * <ol>
-  * <li>[[NeuronConnection]] to connect two neurons</li>
+  * <li>[[com.digitalcipher.spiked.topology.Network.NeuronConnection]] to connect two neurons</li>
   * </ol>
   *
   * Created by rob on 9/23/16.
@@ -67,7 +67,7 @@ class Network extends Actor {
   /**
     * Connects the neurons in the list of connections
     * @param connections The list of connections to make
-    * @return A [[ConnectNeuronsResponse]]
+    * @return A [[Network.ConnectNeuronsResponse]]
     */
   def connectNeurons(connections: List[NeuronConnection]): ConnectNeuronsResponse = {
     connections.foreach(connection =>

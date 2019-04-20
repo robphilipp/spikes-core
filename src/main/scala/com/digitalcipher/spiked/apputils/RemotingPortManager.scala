@@ -20,7 +20,7 @@ case class RemotingPortManager(ports: List[Int]) {
     * Retrieves an available port, if one is available.
     *
     * @param systemName The name of the actor system requesting the port
-    * @return [[Some]] port; or [[None]] in no ports are available
+    * @return [[scala.Some]] port; or [[scala.None]] in no ports are available
     */
   def checkOutRemotingPort(systemName: String): Option[Int] = {
     val port = availablePorts

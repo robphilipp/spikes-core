@@ -197,8 +197,8 @@ object SpikesAppUtils {
     *         which the environment has shut down.
     */
   def shutdownSystem(system: ActorSystem,
-                             remoteGroups: Map[String, RemoteGroupInfo],
-                             remotingPortManager: RemotingPortManager): (Time, Time) => Unit = (start: Time, end: Time) => {
+                     remoteGroups: Map[String, RemoteGroupInfo],
+                     remotingPortManager: RemotingPortManager): (Time, Time) => Unit = (start: Time, end: Time) => {
     system.terminate()
     val logger = LoggerFactory.getLogger("spikes-core-system-shutdown")
     logger.info("Stopped sending signals to input neuron; actor-system name: {}; elapsed time: {}", system.name, (end - start).millis)
