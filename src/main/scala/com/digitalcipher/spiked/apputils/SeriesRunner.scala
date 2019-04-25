@@ -15,8 +15,8 @@ import com.digitalcipher.spiked.topology.Network.{RetrieveNeurons, SimulationSta
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.util.matching.Regex
 
 /**
   * The series runner provides a set of utilities to facilitate construction and running a series of spiking neural
@@ -163,15 +163,19 @@ class SeriesRunner(timeFactor: Int = 1,
     *
     * @param networkResults The list holding the results of the actor system and neural network creation.
     * @param environmentFactory The factory for creating an environment that sends signals to the neural network.
+    * @param inputNeuronSelector The regular expression used to select the input neurons from the network
     */
-  def runSimulationSeries(networkResults: List[CreateNetworkResult], environmentFactory: EnvironmentFactory): Unit = {
+  def runSimulationSeries(networkResults: List[CreateNetworkResult],
+                          environmentFactory: EnvironmentFactory,
+                          inputNeuronSelector: Regex): Unit = {
     networkResults.foreach(result => {
       runSimulation(
         actorSystem = result.system,
         remoteGroups = result.remoteGroups,
         network = result.network,
         environmentFactory = environmentFactory,
-        clock = initializeSimulationTimes(timeFactor)
+        clock = initializeSimulationTimes(timeFactor),
+        inputNeuronSelector = inputNeuronSelector
       )
       logger.info(s"Simulation running; ${result.system.name}; network actor: ${result.network.path}")
     })
@@ -189,6 +193,7 @@ class SeriesRunner(timeFactor: Int = 1,
     * @param environmentFactory The factory for creating an environment that sends signals to the neural network.
     * @param clock        The signal clock used to determine simulation timing. Generally, the clock represents the time
     *                     from the network's point of view. Neurons have offsets to this clock to manage their own time.
+    * @param inputNeuronSelector The regular expression used to select the input neurons from the network
     * @param environmentSetupWaitTime The amount of time to wait for the run-environment to get set up
     * @return A reference to the environment actor
     */
@@ -197,6 +202,7 @@ class SeriesRunner(timeFactor: Int = 1,
                             network: ActorRef,
                             environmentFactory: EnvironmentFactory,
                             clock: SignalClock,
+                            inputNeuronSelector: Regex,
                             environmentSetupWaitTime: FiniteDuration = 5 seconds): ActorRef = {
     import akka.pattern.ask
 
@@ -205,7 +211,8 @@ class SeriesRunner(timeFactor: Int = 1,
 
     // grab the neurons to which to send the initial signals
     logger.info("sending request to retrieve neurons")
-    val runEnvironmentFuture: Future[ActorRef] = ask(network, RetrieveNeurons("""(in\-[1-7]{1}$)""".r)).mapTo[List[ActorRef]]
+//    val runEnvironmentFuture: Future[ActorRef] = ask(network, RetrieveNeurons("""(in\-[1-7]{1}$)""".r)).mapTo[List[ActorRef]]
+    val runEnvironmentFuture: Future[ActorRef] = ask(network, RetrieveNeurons(inputNeuronSelector)).mapTo[List[ActorRef]]
       .flatMap(inputNeurons => {
         logger.info(s"injection neurons: ${inputNeurons.sortBy(ref => ref.path.name).map(neuron => neuron.path.name)}")
 
