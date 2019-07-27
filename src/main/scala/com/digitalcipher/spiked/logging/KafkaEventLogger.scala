@@ -86,12 +86,12 @@ private[logging] class KafkaEventLogger {
   /**
     * Constructs the message in the format needed for Kafka (i.e. [[ProducerRecord]]). The topic is configured.
     *
-    * @param partition The partition to which to send the message
+    * @param key The key associated with the message that is added to the producer record
     * @param message   The message to send
     * @return The [[ProducerRecord]] for the topic, partition, and message
     */
-  private def producerRecord(partition: String, message: String): ProducerRecord[String, String] =
-    KafkaProducerRecord(topic, Some(partition), message)
+  private def producerRecord(key: String, message: String): ProducerRecord[String, String] =
+    KafkaProducerRecord(topic, Some(key), message)
 }
 
 object KafkaEventLogger {

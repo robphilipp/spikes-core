@@ -1,16 +1,13 @@
 package com.digitalcipher.spiked.logging.json
 
-import akka.actor.ActorRef
-import com.digitalcipher.spiked.construction.description.LearningFunctionDescription
 import com.digitalcipher.spiked.logging.messages._
-import com.digitalcipher.spiked.neurons.Neuron.Connect
 import com.digitalcipher.spiked.topology.NeuronType
 import com.digitalcipher.spiked.topology.coords.spatial.Points
 import com.digitalcipher.spiked.topology.coords.spatial.Points.Cartesian
 import spray.json.DefaultJsonProtocol
 import squants.Time
 import squants.electro.{ElectricPotential, Microvolts, Millivolts, Volts}
-import squants.space.{Length, Microns}
+import squants.space.Microns
 import squants.time._
 
 /**
@@ -18,23 +15,61 @@ import squants.time._
   */
 object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
+  private val MESSAGE: String = "message"
+  private val TYPE: String = "type"
+
+  private val NEURON_ID = "neuron_id"
+  private val LOCATION = "location"
+  private val PRE_SYNAPTIC = "pre_synaptic"
+  private val POST_SYNAPTIC = "post_synaptic"
+  private val SIGNAL_DELAY = "signal_delay"
+  private val INHIBITORY_AMPLITUDE = "inhibitory_amplitude"
+  private val INHIBITORY_PERIOD = "inhibitory_period"
+  private val EXCITATION_AMPLITUDE = "excitation_amplitude"
+  private val EXCITATION_PERIOD = "excitation_period"
+  private val BASELINE = "baseline"
+  private val LEARNING_RATE = "learning_rate"
+  private val TIME_CONSTANT = "time_constant"
+  private val INITIAL_WEIGHT = "initial_weight"
+  private val EQUILIBRIUM_WEIGHT = "equilibrium_weight"
+  private val PRE_SYNAPTIC_LOCATION = "pre_synaptic_location"
+  private val POST_SYNAPTIC_LOCATION = "post_synaptic_location"
+  private val DISTANCE = "distance"
+
+
   import spray.json._
 
+  /**
+    * Network summary holds the number if input, hidden, and output neurons. Recall that
+    * the labels are arbitrary and a hidden neuron could send output signals.
+    */
   implicit object NetworkSummaryJsonFormat extends RootJsonFormat[NetworkSummary] {
 
     import com.digitalcipher.spiked.logging.MessageNames.SUMMARY
 
     private implicit val jsonFormat: JsonFormat[NeuronType.Value] = EnumJsonConverter.jsonEnum(NeuronType)
 
-    override def write(summary: NetworkSummary) = JsObject(SUMMARY.name -> summary.counts.toJson)
+    override def write(summary: NetworkSummary) = JsObject(
+      TYPE -> JsString(SUMMARY.name),
+      MESSAGE -> summary.counts.toJson
+    )
 
-    override def read(value: JsValue): NetworkSummary = value.asJsObject.getFields(SUMMARY.name) match {
-      case Seq(JsObject(counts)) =>
-        NetworkSummary(counts.map(entry => NeuronType.from(entry._1) -> entry._2.convertTo[Int]))
+    override def read(value: JsValue): NetworkSummary = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (SUMMARY.name, countMap) => countMap.asJsObject match {
+          case Seq(JsObject(counts)) =>
+            NetworkSummary(counts.map(entry => NeuronType.from(entry._1) -> entry._2.convertTo[Int]))
+          case _ => deserializationError("map of neuron-type to counts expected")
+        }
+        case _ => deserializationError(s"(type: ${SUMMARY.name}, ...) message expected")
+      }
       case _ => deserializationError("NetworkSummary expected")
     }
   }
 
+  /**
+    * Spatial cartesian coordinates holding the (x, y, z) position of a neuron
+    */
   implicit object CartesianPointJsonFormat extends RootJsonFormat[Points.Cartesian] {
     override def write(point: Cartesian): JsValue = JsObject(
       "x" -> JsNumber(point._1.toMicrons),
@@ -48,6 +83,9 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  /**
+    * Time, holding the dimension (value) and the units (i.e. ms)
+    */
   implicit object TimeJsonFormat extends RootJsonFormat[Time] {
     override def write(time: Time): JsValue = JsObject(
       "value" -> JsNumber(time.toMilliseconds),
@@ -64,6 +102,9 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  /**
+    * Electrical potential, holding the dimension and the units (i.e. mV)
+    */
   implicit object ElectricPotentialJsonFormat extends RootJsonFormat[ElectricPotential] {
     override def write(time: ElectricPotential): JsValue = JsObject(
       "value" -> JsNumber(time.toMillivolts),
@@ -80,6 +121,9 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  /**
+    * Frequency, holding the dimension and the units (i.e. Hz)
+    */
   implicit object FrequencyJsonFormat extends RootJsonFormat[Frequency] {
     override def write(frequency: Frequency): JsValue = JsObject(
       "value" -> JsNumber(frequency.toKilohertz),
@@ -96,181 +140,209 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  /**
+    * The network topology holding the neuron ID and it's location
+    */
   implicit object NetworkTopologyJsonFormat extends RootJsonFormat[NetworkTopology] {
 
     import com.digitalcipher.spiked.logging.MessageNames.TOPOLOGY
 
-    override def write(topology: NetworkTopology): JsValue = JsObject(TOPOLOGY.name -> JsObject(
-      "neuron_id" -> JsString(topology.neuronId),
-      "location" -> topology.location.toJson
-    ))
+    override def write(topology: NetworkTopology): JsValue = JsObject(
+      TYPE -> JsString(TOPOLOGY.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(topology.neuronId),
+        LOCATION -> topology.location.toJson
+      )
+    )
 
-    override def read(value: JsValue): NetworkTopology = value.asJsObject.getFields(TOPOLOGY.name) match {
-      case Seq(neuron) => neuron.asJsObject.getFields("neuron_id", "location") match {
-        case Seq(JsString(neuronId), location) => NetworkTopology(neuronId, location.convertTo[Cartesian])
-        case _ => deserializationError("(neuron ID, location) expected")
+    override def read(value: JsValue): NetworkTopology = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (TOPOLOGY.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, LOCATION) match {
+          case Seq(JsString(neuronId), location) => NetworkTopology(neuronId, location.convertTo[Cartesian])
+          case _ => deserializationError(s"($NEURON_ID, $LOCATION) expected")
+        }
+        case _ => deserializationError(s"(type: ${TOPOLOGY.name}, ...) message expected")
       }
       case _ => deserializationError("NetworkTopology expected")
     }
   }
 
+  /**
+    * Post-synaptic neuron connected
+    */
   implicit object ConnectedPostSynapticJsonFormat extends RootJsonFormat[ConnectedPostSynaptic] {
 
     import com.digitalcipher.spiked.logging.MessageNames.CONNECT
 
-    override def write(connection: ConnectedPostSynaptic): JsValue = JsObject(CONNECT.name -> JsObject(
-      "pre_synaptic" -> JsString(connection.preSynapticId),
-      "post_synaptic" -> JsString(connection.postSynapticId),
-      "signal_delay" -> connection.signalDelay.toJson
-    ))
+    override def write(connection: ConnectedPostSynaptic): JsValue = JsObject(
+      TYPE -> JsString(CONNECT.name),
+      MESSAGE -> JsObject(
+        PRE_SYNAPTIC -> JsString(connection.preSynapticId),
+        POST_SYNAPTIC -> JsString(connection.postSynapticId),
+        SIGNAL_DELAY -> connection.signalDelay.toJson
+      ))
 
-    override def read(value: JsValue): ConnectedPostSynaptic = {
-      value.asJsObject.getFields("pre_synaptic", "post_synaptic", "signal_delay") match {
-        case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(signalDelay)) =>
-          ConnectedPostSynaptic(
-            preSynapticId = preSynapticId,
-            postSynapticId = postSynapticId,
-            signalDelay = Milliseconds(signalDelay)
-          )
-        case _ => deserializationError("(neuron_id, timestamp, plasticity)")
+    override def read(value: JsValue): ConnectedPostSynaptic = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (CONNECT.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, SIGNAL_DELAY) match {
+          case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(signalDelay)) =>
+            ConnectedPostSynaptic(
+              preSynapticId = preSynapticId,
+              postSynapticId = postSynapticId,
+              signalDelay = Milliseconds(signalDelay)
+            )
+          case _ => deserializationError(s"($PRE_SYNAPTIC, $POST_SYNAPTIC, $SIGNAL_DELAY) expected")
+        }
+        case _ => deserializationError(s"(type: ${CONNECT.name}, ...) message expected")
       }
+      case _ => deserializationError("ConnectedPostSynaptic expected")
     }
   }
 
+  /**
+    * STDP hard-limit learning
+    */
   implicit object StdpHardLimitLearningFunctionJsonFormat extends RootJsonFormat[StdpHardLimitLearningFunction] {
 
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
-    override def write(learning: StdpHardLimitLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
-      "inhibitory_amplitude" -> JsNumber(learning.inhibitionAmplitude),
-      "inhibitory_period" -> learning.inhibitionPeriod.toJson,
-      "excitation_amplitude" -> JsNumber(learning.excitationAmplitude),
-      "excitation_period" -> learning.excitationPeriod.toJson
-    ))
+    override def write(learning: StdpHardLimitLearningFunction): JsValue = JsObject(
+      TYPE -> JsString(LEARNING.name),
+      MESSAGE -> JsObject(
+        INHIBITORY_AMPLITUDE -> JsNumber(learning.inhibitionAmplitude),
+        INHIBITORY_PERIOD -> learning.inhibitionPeriod.toJson,
+        EXCITATION_AMPLITUDE -> JsNumber(learning.excitationAmplitude),
+        EXCITATION_PERIOD -> learning.excitationPeriod.toJson
+      ))
 
-    override def read(value: JsValue): StdpHardLimitLearningFunction = value.asJsObject.getFields(LEARNING.name) match {
-      case Seq(neuron) => neuron.asJsObject.getFields(
-        "inhibitory_amplitude",
-        "inhibitory_period",
-        "excitation_amplitude",
-        "excitation_period"
-      ) match {
-        case Seq(JsNumber(inhibitAmplitude), inhibitPeriod, JsNumber(exciteAmplitude), excitePeriod) =>
-          StdpHardLimitLearningFunction(
-            inhibitAmplitude.doubleValue(),
-            inhibitPeriod.convertTo[Time],
-            exciteAmplitude.doubleValue(),
-            excitePeriod.convertTo[Time]
-          )
-        case _ => deserializationError("(neuron ID, location) expected")
+    override def read(value: JsValue): StdpHardLimitLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (LEARNING.name, learning) => learning.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
+          case Seq(neuron) => neuron.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
+            case Seq(JsNumber(inhibitAmplitude), inhibitPeriod, JsNumber(exciteAmplitude), excitePeriod) =>
+              StdpHardLimitLearningFunction(
+                inhibitAmplitude.doubleValue(),
+                inhibitPeriod.convertTo[Time],
+                exciteAmplitude.doubleValue(),
+                excitePeriod.convertTo[Time]
+              )
+            case _ => deserializationError(s"($INHIBITORY_AMPLITUDE, $INHIBITORY_PERIOD, $EXCITATION_AMPLITUDE, $EXCITATION_PERIOD) expected")
+          }
+          case _ => deserializationError(s"(type: ${LEARNING.name}, ...) message expected")
+        }
+        case _ => deserializationError("StdpHardLimitLearningFunction expected")
       }
-      case _ => deserializationError("StdpHardLimitLearningFunction expected")
     }
   }
 
+  /**
+    * STDP soft-limit learning
+    */
   implicit object StdpSoftLimitLearningFunctionJsonFormat extends RootJsonFormat[StdpSoftLimitLearningFunction] {
 
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
-    override def write(learning: StdpSoftLimitLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
-      "inhibitory_amplitude" -> JsNumber(learning.inhibitionAmplitude),
-      "inhibitory_period" -> learning.inhibitionPeriod.toJson,
-      "excitation_amplitude" -> JsNumber(learning.excitationAmplitude),
-      "excitation_period" -> learning.excitationPeriod.toJson
-    ))
+    override def write(learning: StdpSoftLimitLearningFunction): JsValue = JsObject(
+      TYPE -> JsString(LEARNING.name),
+      MESSAGE -> JsObject(
+        INHIBITORY_AMPLITUDE -> JsNumber(learning.inhibitionAmplitude),
+        INHIBITORY_PERIOD -> learning.inhibitionPeriod.toJson,
+        EXCITATION_AMPLITUDE -> JsNumber(learning.excitationAmplitude),
+        EXCITATION_PERIOD -> learning.excitationPeriod.toJson
+      ))
 
-    override def read(value: JsValue): StdpSoftLimitLearningFunction = value.asJsObject.getFields(LEARNING.name) match {
-      case Seq(neuron) => neuron.asJsObject.getFields(
-        "inhibitory_amplitude",
-        "inhibitory_period",
-        "excitation_amplitude",
-        "excitation_period"
-      ) match {
-        case Seq(JsNumber(inhibitAmplitude), inhibitPeriod, JsNumber(exciteAmplitude), excitePeriod) =>
-          StdpSoftLimitLearningFunction(
-            inhibitAmplitude.doubleValue(),
-            inhibitPeriod.convertTo[Time],
-            exciteAmplitude.doubleValue(),
-            excitePeriod.convertTo[Time]
-          )
-        case _ => deserializationError("(neuron ID, location) expected")
+    override def read(value: JsValue): StdpSoftLimitLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (LEARNING.name, learning) => learning.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
+          case Seq(neuron) => neuron.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
+            case Seq(JsNumber(inhibitAmplitude), inhibitPeriod, JsNumber(exciteAmplitude), excitePeriod) =>
+              StdpSoftLimitLearningFunction(
+                inhibitAmplitude.doubleValue(),
+                inhibitPeriod.convertTo[Time],
+                exciteAmplitude.doubleValue(),
+                excitePeriod.convertTo[Time]
+              )
+            case _ => deserializationError(s"($INHIBITORY_AMPLITUDE, $INHIBITORY_PERIOD, $EXCITATION_AMPLITUDE, $EXCITATION_PERIOD) expected")
+          }
+          case _ => deserializationError(s"(type: ${LEARNING.name}, ...) message expected")
+        }
+        case _ => deserializationError("StdpSoftLimitLearningFunction expected")
       }
-      case _ => deserializationError("StdpSoftLimitLearningFunction expected")
     }
   }
 
+  /**
+    * STDP alpha learning
+    */
   implicit object StdpAlphaLearningFunctionJsonFormat extends RootJsonFormat[StdpAlphaLearningFunction] {
 
     import com.digitalcipher.spiked.logging.MessageNames.LEARNING
 
-    override def write(learning: StdpAlphaLearningFunction): JsValue = JsObject(LEARNING.name -> JsObject(
-      "baseline" -> JsNumber(learning.baseline),
-      "learning_rate" -> JsNumber(learning.learningRate),
-      "time_constant" -> learning.timeConstant.toJson
-    ))
+    override def write(learning: StdpAlphaLearningFunction): JsValue = JsObject(
+      TYPE -> JsString(LEARNING.name),
+      MESSAGE -> JsObject(
+        BASELINE -> JsNumber(learning.baseline),
+        LEARNING_RATE -> JsNumber(learning.learningRate),
+        TIME_CONSTANT -> learning.timeConstant.toJson
+      ))
 
-    override def read(value: JsValue): StdpAlphaLearningFunction = value.asJsObject.getFields(LEARNING.name) match {
-      case Seq(neuron) => neuron.asJsObject.getFields(
-        "baseline",
-        "learning_rate",
-        "time_constant"
-      ) match {
-        case Seq(JsNumber(baseline), JsNumber(learningRate), timeConstant) =>
-          StdpAlphaLearningFunction(
-            baseline.doubleValue(),
-            timeConstant.convertTo[Time],
-            learningRate.doubleValue()
-          )
-        case _ => deserializationError("(neuron ID, location) expected")
+    override def read(value: JsValue): StdpAlphaLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (LEARNING.name, learning) => learning.asJsObject.getFields(BASELINE, LEARNING_RATE, TIME_CONSTANT) match {
+          case Seq(neuron) => neuron.asJsObject.getFields(BASELINE, LEARNING_RATE, TIME_CONSTANT) match {
+            case Seq(JsNumber(baseline), JsNumber(learningRate), timeConstant) =>
+              StdpAlphaLearningFunction(
+                baseline.doubleValue(),
+                timeConstant.convertTo[Time],
+                learningRate.doubleValue()
+              )
+            case _ => deserializationError(s"($BASELINE, $LEARNING_RATE, $TIME_CONSTANT) expected")
+          }
+          case _ => deserializationError(s"(type: ${LEARNING.name}, ...) message expected")
+        }
+        case _ => deserializationError("StdpAlphaLearningFunction expected")
       }
-      case _ => deserializationError("StdpAlphaLearningFunction expected")
     }
   }
 
+  /**
+    * Neuron connection
+    */
   implicit object NeuronConnectionJsonFormat extends RootJsonFormat[NetworkConnected] {
 
     import com.digitalcipher.spiked.logging.MessageNames.CONNECT
 
-    override def write(connected: NetworkConnected): JsValue = JsObject(CONNECT.name -> JsObject(
-      "pre_synaptic" -> JsString(connected.preSynapticId),
-      "post_synaptic" -> JsString(connected.postSynapticId),
-      "initial_weight" -> JsNumber(connected.initialWeight),
-      "equilibrium_weight" -> JsNumber(connected.equilibriumWeight),
-      "pre_synaptic_location" -> connected.preSynapticLocation.toJson,
-      "post_synaptic_location" -> connected.postSynapticLocation.toJson,
-      "distance" -> JsNumber(connected.distance.toMicrons)
-    ))
+    override def write(connected: NetworkConnected): JsValue = JsObject(
+      TYPE -> JsString(CONNECT.name),
+      MESSAGE -> JsObject(
+        PRE_SYNAPTIC -> JsString(connected.preSynapticId),
+        POST_SYNAPTIC -> JsString(connected.postSynapticId),
+        INITIAL_WEIGHT -> JsNumber(connected.initialWeight),
+        EQUILIBRIUM_WEIGHT -> JsNumber(connected.equilibriumWeight),
+        PRE_SYNAPTIC_LOCATION -> connected.preSynapticLocation.toJson,
+        POST_SYNAPTIC_LOCATION -> connected.postSynapticLocation.toJson,
+        DISTANCE -> JsNumber(connected.distance.toMicrons)
+      ))
 
-    override def read(value: JsValue): NetworkConnected = value.asJsObject.getFields(CONNECT.name) match {
-      case Seq(connection) => connection.asJsObject.getFields(
-        "pre_synaptic",
-        "post_synaptic",
-        "initial_weight",
-        "equilibrium_weight",
-        "pre_synaptic_location",
-        "post_synaptic_location",
-        "distance"
-      ) match {
-        case Seq(
-        JsString(preSynapticId),
-        JsString(postSynapticId),
-        JsNumber(initialWeight),
-        JsNumber(equilibriumWeight),
-        preSynapticLocation,
-        postSynapticLocation,
-        JsNumber(distance)
-        ) => NetworkConnected(
-          preSynapticId = preSynapticId,
-          postSynapticId = postSynapticId,
-          initialWeight = initialWeight.doubleValue(),
-          equilibriumWeight = equilibriumWeight.doubleValue(),
-          preSynapticLocation = preSynapticLocation.convertTo[Cartesian],
-          postSynapticLocation = postSynapticLocation.convertTo[Cartesian],
-          distance = Microns(distance.doubleValue())
-        )
-        case _ => deserializationError("(pre_synaptic, post_synaptic) expected")
+    override def read(value: JsValue): NetworkConnected = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (CONNECT.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
+          case Seq(connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
+            case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(initialWeight), JsNumber(equilibriumWeight), preSynapticLocation, postSynapticLocation, JsNumber(distance)) => NetworkConnected(
+              preSynapticId = preSynapticId,
+              postSynapticId = postSynapticId,
+              initialWeight = initialWeight.doubleValue(),
+              equilibriumWeight = equilibriumWeight.doubleValue(),
+              preSynapticLocation = preSynapticLocation.convertTo[Cartesian],
+              postSynapticLocation = postSynapticLocation.convertTo[Cartesian],
+              distance = Microns(distance.doubleValue())
+            )
+            case _ => deserializationError(s"($PRE_SYNAPTIC, $POST_SYNAPTIC, $INITIAL_WEIGHT, $EQUILIBRIUM_WEIGHT, $PRE_SYNAPTIC_LOCATION, $POST_SYNAPTIC_LOCATION, $DISTANCE) expected")
+          }
+          case _ => deserializationError(s"(type: ${CONNECT.name}, ...) message expected")
+        }
+        case _ => deserializationError("NetworkConnected expected")
       }
-      case _ => deserializationError("NeuronConnection expected")
     }
   }
 
