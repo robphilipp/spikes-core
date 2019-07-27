@@ -35,7 +35,21 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   private val PRE_SYNAPTIC_LOCATION = "pre_synaptic_location"
   private val POST_SYNAPTIC_LOCATION = "post_synaptic_location"
   private val DISTANCE = "distance"
-
+  private val SOURCE_ID = "source_id"
+  private val PREVIOUS_WEIGHT = "previous_weight"
+  private val NEW_WEIGHT = "new_weight"
+  private val ADJUSTMENT = "adjustment"
+  private val TIME_WINDOW = "time_window"
+  private val STDP_TIME = "stdp_time"
+  private val SIGNAL_TIME = "signal_time"
+  private val TIMESTAMP = "timestamp"
+  private val PLASTICITY = "plasticity"
+  private val LAST_EVENT_TIME = "last_event_time"
+  private val LAST_FIRE_TIME = "last_fire_time"
+  private val SIGNAL_INTENSITY = "signal_intensity"
+  private val MEMBRANE_POTENTIAL = "membrane_potential"
+  private val TRANSITION_TYPE = "transition_type"
+  private val FIRING_RATE = "firing_rate"
 
   import spray.json._
 
@@ -346,241 +360,258 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     }
   }
 
+  /**
+    * Registration of the pre-synaptic neuron with the post-synaptic neuron for STDP and plasticity
+    */
   implicit object PreSynapticRegistrationJsonFormat extends RootJsonFormat[PreSynapticRegistration] {
 
     import com.digitalcipher.spiked.logging.MessageNames.REGISTER
 
-    override def write(registration: PreSynapticRegistration): JsValue = JsObject(REGISTER.name -> JsObject(
-      "neuron_id" -> JsString(registration.neuronId),
-      "pre_synaptic" -> JsString(registration.preSynapticId),
-      "initial_weight" -> JsNumber(registration.weight)
-    ))
+    override def write(registration: PreSynapticRegistration): JsValue = JsObject(
+      TYPE -> JsString(REGISTER.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(registration.neuronId),
+        PRE_SYNAPTIC -> JsString(registration.preSynapticId),
+        INITIAL_WEIGHT -> JsNumber(registration.weight)
+      ))
 
-    override def read(value: JsValue): PreSynapticRegistration = value.asJsObject.getFields(REGISTER.name) match {
-      case Seq(connection) => connection.asJsObject.getFields("neuron_id", "pre_synaptic", "initial_weight") match {
-        case Seq(JsString(neuronId), JsString(preSynapticId), JsNumber(weight)) =>
-          PreSynapticRegistration(neuronId, preSynapticId, weight.doubleValue())
-        case _ => deserializationError("(neuron_id, pre_synaptic, initial_weight) expected")
+    override def read(value: JsValue): PreSynapticRegistration = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (REGISTER.name, registration) => registration.asJsObject.getFields(NEURON_ID, PRE_SYNAPTIC, INITIAL_WEIGHT) match {
+          case Seq(JsString(neuronId), JsString(preSynapticId), JsNumber(weight)) =>
+            PreSynapticRegistration(neuronId, preSynapticId, weight.doubleValue())
+          case _ => deserializationError(s"($NEURON_ID, $PRE_SYNAPTIC, $INITIAL_WEIGHT) expected")
+        }
+        case _ => deserializationError(s"(type: ${REGISTER.name}, ...) message expected")
       }
       case _ => deserializationError("PreSynapticRegistration expected")
     }
   }
 
+  /**
+    * Connection weights updated from STDP learning
+    */
   implicit object StdpWeightUpdatedJsonFormat extends RootJsonFormat[StdpWeightUpdated] {
 
     import com.digitalcipher.spiked.logging.MessageNames.WEIGHT_UPDATE
 
-    override def write(updated: StdpWeightUpdated): JsValue = JsObject(WEIGHT_UPDATE.name -> JsObject(
-      "neuron_id" -> JsString(updated.neuronId),
-      "source_id" -> JsString(updated.sourceId),
-      "previous_weight" -> JsNumber(updated.previousWeight),
-      "new_weight" -> JsNumber(updated.newWeight),
-      "adjustment" -> JsNumber(updated.adjustment),
-      "time_window" -> updated.timeWindow.toJson,
-      "stdp_time" -> updated.stdpTime.toJson,
-      "signal_time" -> updated.timeWindow.toJson
-    ))
+    override def write(updated: StdpWeightUpdated): JsValue = JsObject(
+      TYPE -> JsString(WEIGHT_UPDATE.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(updated.neuronId),
+        SOURCE_ID -> JsString(updated.sourceId),
+        PREVIOUS_WEIGHT -> JsNumber(updated.previousWeight),
+        NEW_WEIGHT -> JsNumber(updated.newWeight),
+        ADJUSTMENT -> JsNumber(updated.adjustment),
+        TIME_WINDOW -> updated.timeWindow.toJson,
+        STDP_TIME -> updated.stdpTime.toJson,
+        SIGNAL_TIME -> updated.timeWindow.toJson
+      ))
 
-    override def read(value: JsValue): StdpWeightUpdated = value.asJsObject.getFields(WEIGHT_UPDATE.name) match {
-      case Seq(updated) => updated.asJsObject.getFields(
-        "neuron_id",
-        "source_id",
-        "previous_weight",
-        "new_weight",
-        "adjustment",
-        "time_window",
-        "stdp_time",
-        "signal_time"
-      ) match {
-        case Seq(
-        JsString(neuronId),
-        JsString(sourceId),
-        JsNumber(previousWeight),
-        JsNumber(newWeight),
-        JsNumber(adjustment),
-        timeWindow,
-        stdpTime,
-        signalTime
-        ) =>
-          StdpWeightUpdated(
-            neuronId = neuronId,
-            sourceId = sourceId,
-            previousWeight = previousWeight.doubleValue(),
-            newWeight = newWeight.doubleValue(),
-            adjustment = adjustment.doubleValue(),
-            timeWindow = timeWindow.convertTo[Time],
-            stdpTime = stdpTime.convertTo[Time],
-            signalTime = signalTime.convertTo[Time]
-          )
-        case _ => deserializationError("(neuron_id, source_id, previous_weight, new_weight, adjustment, time_window, previous_weight, stdp_time, signal_time) expected")
+    override def read(value: JsValue): StdpWeightUpdated = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (WEIGHT_UPDATE.name, update) => update.asJsObject.getFields(NEURON_ID, SOURCE_ID, PREVIOUS_WEIGHT, NEW_WEIGHT, ADJUSTMENT, TIME_WINDOW, STDP_TIME, SIGNAL_TIME) match {
+          case Seq(updated) => updated.asJsObject.getFields(NEURON_ID, SOURCE_ID, PREVIOUS_WEIGHT, NEW_WEIGHT, ADJUSTMENT, TIME_WINDOW, STDP_TIME, SIGNAL_TIME) match {
+            case Seq(JsString(neuronId), JsString(sourceId), JsNumber(previousWeight), JsNumber(newWeight), JsNumber(adjustment), timeWindow, stdpTime, signalTime) =>
+              StdpWeightUpdated(
+                neuronId = neuronId,
+                sourceId = sourceId,
+                previousWeight = previousWeight.doubleValue(),
+                newWeight = newWeight.doubleValue(),
+                adjustment = adjustment.doubleValue(),
+                timeWindow = timeWindow.convertTo[Time],
+                stdpTime = stdpTime.convertTo[Time],
+                signalTime = signalTime.convertTo[Time]
+              )
+            case _ => deserializationError(s"($NEURON_ID, $SOURCE_ID, $PREVIOUS_WEIGHT, $NEW_WEIGHT, $ADJUSTMENT, $TIME_WINDOW, $STDP_TIME, $SIGNAL_TIME) expected")
+          }
+          case _ => deserializationError(s"(type: ${WEIGHT_UPDATE.name}, ...) message expected")
+        }
+        case _ => deserializationError("StdpWeightUpdated expected")
       }
-      case _ => deserializationError("StdpWeightUpdated expected")
     }
   }
 
+  /**
+    * Intrinsic plasticity model of learning and weight updates
+    */
   implicit object IntrinsicPlasticityUpdatedJsonFormat extends RootJsonFormat[IntrinsicPlasticityUpdated] {
 
     import com.digitalcipher.spiked.logging.MessageNames.INTRINSIC_PLASTICITY_UPDATE
 
-    override def write(plasticity: IntrinsicPlasticityUpdated): JsValue = JsObject(INTRINSIC_PLASTICITY_UPDATE.name -> JsObject(
-      "neuron_id" -> JsString(plasticity.neuronId),
-      "timestamp" -> plasticity.timestamp.toJson,
-      "plasticity" -> plasticity.intrinsicPlasticity.toJson
-    ))
+    override def write(plasticity: IntrinsicPlasticityUpdated): JsValue = JsObject(
+      TYPE -> JsString(INTRINSIC_PLASTICITY_UPDATE.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(plasticity.neuronId),
+        TIMESTAMP -> plasticity.timestamp.toJson,
+        PLASTICITY -> plasticity.intrinsicPlasticity.toJson
+      ))
 
-    override def read(value: JsValue): IntrinsicPlasticityUpdated = {
-      value.asJsObject.getFields("neuron_id", "timestamp", "plasticity") match {
-        case Seq(JsString(neuronId), JsNumber(timestamp), JsNumber(plasticity)) =>
-          IntrinsicPlasticityUpdated(
-            neuronId = neuronId,
-            timestamp = Milliseconds(timestamp),
-            intrinsicPlasticity = Millivolts(plasticity)
-          )
-        case _ => deserializationError("(neuron_id, timestamp, plasticity)")
+    override def read(value: JsValue): IntrinsicPlasticityUpdated = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (INTRINSIC_PLASTICITY_UPDATE.name, update) => update.asJsObject.getFields(NEURON_ID, TIMESTAMP, PLASTICITY) match {
+          case Seq(JsString(neuronId), JsNumber(timestamp), JsNumber(plasticity)) =>
+            IntrinsicPlasticityUpdated(
+              neuronId = neuronId,
+              timestamp = Milliseconds(timestamp),
+              intrinsicPlasticity = Millivolts(plasticity)
+            )
+          case _ => deserializationError(s"($NEURON_ID, $TIMESTAMP, $PLASTICITY)")
+        }
+        case _ => deserializationError(s"(type: ${INTRINSIC_PLASTICITY_UPDATE.name}, ...) message expected")
       }
+      case _ => deserializationError("IntrinsicPlasticityUpdated expected")
     }
   }
 
+  /**
+    * A signal was received from a pre-synaptic neurons
+    */
   implicit object SignalReceivedJsonFormat extends RootJsonFormat[SignalReceived] {
 
     import com.digitalcipher.spiked.logging.MessageNames.SIGNAL_RECEIVED
 
-    override def write(signal: SignalReceived): JsValue = JsObject(SIGNAL_RECEIVED.name -> JsObject(
-      "neuron_id" -> JsString(signal.neuronId),
-      "source_id" -> JsString(signal.sourceId),
-      "timestamp" -> signal.timestamp.toJson,
-      "last_event_time" -> signal.lastEventTime.toJson,
-      "last_fire_time" -> signal.lastFireTime.toJson,
-      "signal_intensity" -> signal.signalIntensity.toJson
-    ))
+    override def write(signal: SignalReceived): JsValue = JsObject(
+      TYPE -> JsString(SIGNAL_RECEIVED.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(signal.neuronId),
+        SOURCE_ID -> JsString(signal.sourceId),
+        TIMESTAMP -> signal.timestamp.toJson,
+        LAST_EVENT_TIME -> signal.lastEventTime.toJson,
+        LAST_FIRE_TIME -> signal.lastFireTime.toJson,
+        SIGNAL_INTENSITY -> signal.signalIntensity.toJson
+      ))
 
-    override def read(value: JsValue): SignalReceived = value.asJsObject.getFields(SIGNAL_RECEIVED.name) match {
-      case Seq(signal) => signal.asJsObject.getFields(
-        "neuron_id",
-        "source_id",
-        "timestamp",
-        "last_event_time",
-        "last_fire_time",
-        "signal_intensity"
-      ) match {
-        case Seq(
-        JsString(neuronId),
-        JsString(sourceId),
-        timestamp,
-        lastEventTime,
-        lastFireTime,
-        signalIntensity
-        ) =>
-          SignalReceived(
-            neuronId = neuronId,
-            sourceId = sourceId,
-            timestamp = timestamp.convertTo[Time],
-            lastEventTime = lastEventTime.convertTo[Time],
-            lastFireTime = lastFireTime.convertTo[Time],
-            signalIntensity = signalIntensity.convertTo[ElectricPotential]
-          )
-        case _ => deserializationError("(neuron_id, source_id, timestamp, last_event_time, last_fire_time, signal_intensity")
+    override def read(value: JsValue): SignalReceived = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (SIGNAL_RECEIVED.name, signal) => signal.asJsObject.getFields(NEURON_ID, SOURCE_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
+          case Seq(signal) => signal.asJsObject.getFields(NEURON_ID, SOURCE_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
+            case Seq(JsString(neuronId), JsString(sourceId), timestamp, lastEventTime, lastFireTime, signalIntensity) =>
+              SignalReceived(
+                neuronId = neuronId,
+                sourceId = sourceId,
+                timestamp = timestamp.convertTo[Time],
+                lastEventTime = lastEventTime.convertTo[Time],
+                lastFireTime = lastFireTime.convertTo[Time],
+                signalIntensity = signalIntensity.convertTo[ElectricPotential]
+              )
+            case _ => deserializationError(s"($NEURON_ID, $SOURCE_ID, $TIMESTAMP, $LAST_EVENT_TIME, $LAST_FIRE_TIME, $SIGNAL_INTENSITY) expected")
+          }
+          case _ => deserializationError(s"(type: ${SIGNAL_RECEIVED.name}, ...) message expected")
+        }
+        case _ => deserializationError("SignalReceived expected")
       }
-      case _ => deserializationError("SignalReceived expected")
     }
   }
 
+  /**
+    * An update to the membrane potential
+    */
   implicit object MembranePotentialUpdateJsonFormat extends RootJsonFormat[MembranePotentialUpdate] {
 
     import com.digitalcipher.spiked.logging.MessageNames.MEMBRANE_POTENTIAL_UPDATE
 
-    override def write(update: MembranePotentialUpdate): JsValue = JsObject(MEMBRANE_POTENTIAL_UPDATE.name -> JsObject(
-      "neuron_id" -> JsString(update.neuronId),
-      "timestamp" -> update.timestamp.toJson,
-      "last_event_time" -> update.lastEventTime.toJson,
-      "last_fire_time" -> update.lastFireTime.toJson,
-      "membrane_potential" -> update.membranePotential.toJson
-    ))
+    override def write(update: MembranePotentialUpdate): JsValue = JsObject(
+      TYPE -> JsString(MEMBRANE_POTENTIAL_UPDATE.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(update.neuronId),
+        TIMESTAMP -> update.timestamp.toJson,
+        LAST_EVENT_TIME -> update.lastEventTime.toJson,
+        LAST_FIRE_TIME -> update.lastFireTime.toJson,
+        MEMBRANE_POTENTIAL -> update.membranePotential.toJson
+      ))
 
-    override def read(value: JsValue): MembranePotentialUpdate = value.asJsObject.getFields(MEMBRANE_POTENTIAL_UPDATE.name) match {
-      case Seq(signal) => signal.asJsObject.getFields(
-        "neuron_id",
-        "timestamp",
-        "last_event_time",
-        "last_fire_time",
-        "membrane_potential"
-      ) match {
-        case Seq(
-        JsString(neuronId),
-        timestamp,
-        lastEventTime,
-        lastFireTime,
-        membranePotential
-        ) =>
-          MembranePotentialUpdate(
-            neuronId = neuronId,
-            timestamp = timestamp.convertTo[Time],
-            lastEventTime = lastEventTime.convertTo[Time],
-            lastFireTime = lastFireTime.convertTo[Time],
-            membranePotential = membranePotential.convertTo[ElectricPotential]
-          )
-        case _ => deserializationError("(neuron_id, timestamp, last_event_time, last_fire_time, membrane_potential) expected")
+    override def read(value: JsValue): MembranePotentialUpdate = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (MEMBRANE_POTENTIAL_UPDATE.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, MEMBRANE_POTENTIAL) match {
+          case Seq(signal) => signal.asJsObject.getFields() match {
+            case Seq(JsString(neuronId), timestamp, lastEventTime, lastFireTime, membranePotential) =>
+              MembranePotentialUpdate(
+                neuronId = neuronId,
+                timestamp = timestamp.convertTo[Time],
+                lastEventTime = lastEventTime.convertTo[Time],
+                lastFireTime = lastFireTime.convertTo[Time],
+                membranePotential = membranePotential.convertTo[ElectricPotential]
+              )
+            case _ => deserializationError(s"($NEURON_ID, $TIMESTAMP, $LAST_EVENT_TIME, $LAST_FIRE_TIME, $MEMBRANE_POTENTIAL) expected")
+          }
+          case _ => deserializationError(s"(type: ${MEMBRANE_POTENTIAL_UPDATE.name}, ...) message expected")
+        }
+        case _ => deserializationError("MembranePotentialUpdate expected")
       }
-      case _ => deserializationError("MembranePotentialUpdate expected")
     }
   }
 
+  /**
+    * When a neuron fires a spike
+    */
   implicit object SpikedJsonFormat extends RootJsonFormat[Spiked] {
 
     import com.digitalcipher.spiked.logging.MessageNames.SPIKED
 
-    override def write(spike: Spiked): JsValue = JsObject(SPIKED.name -> JsObject(
-      "neuron_id" -> JsString(spike.neuronId),
-      "timestamp" -> spike.timestamp.toJson,
-      "last_fire_time" -> spike.lastFireTime.toJson,
-      "signal_intensity" -> spike.signalIntensity.toJson
-    ))
+    override def write(spike: Spiked): JsValue = JsObject(
+      TYPE -> JsString(SPIKED.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(spike.neuronId),
+        TIMESTAMP -> spike.timestamp.toJson,
+        LAST_FIRE_TIME -> spike.lastFireTime.toJson,
+        SIGNAL_INTENSITY -> spike.signalIntensity.toJson
+      ))
 
-    override def read(value: JsValue): Spiked = value.asJsObject.getFields(SPIKED.name) match {
-      case Seq(spike) => spike.asJsObject.getFields("neuron_id", "timestamp", "last_fire_time", "signal_intensity") match {
-        case Seq(JsString(neuronId), timestamp, lastFireTime, signalIntensity) => Spiked(
-          neuronId = neuronId,
-          timestamp = timestamp.convertTo[Time],
-          lastFireTime = lastFireTime.convertTo[Time],
-          signalIntensity = signalIntensity.convertTo[ElectricPotential]
-        )
-        case _ => deserializationError("(neuron_id, timestamp, last_fire_time, signal_intensity) expected")
+    override def read(value: JsValue): Spiked = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (SPIKED.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
+          case Seq(spike) => spike.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
+            case Seq(JsString(neuronId), timestamp, lastFireTime, signalIntensity) => Spiked(
+              neuronId = neuronId,
+              timestamp = timestamp.convertTo[Time],
+              lastFireTime = lastFireTime.convertTo[Time],
+              signalIntensity = signalIntensity.convertTo[ElectricPotential]
+            )
+            case _ => deserializationError(s"($NEURON_ID, $TIMESTAMP, $LAST_FIRE_TIME, $SIGNAL_INTENSITY) expected")
+          }
+        }
+        case _ => deserializationError(s"(type: ${SPIKED.name}, ...) message expected")
       }
       case _ => deserializationError("Spiked expected")
     }
   }
 
+  /**
+    * When a bistable neuron has a phase transition
+    */
   implicit object PhaseTransitionJsonFormat extends RootJsonFormat[PhaseTransition] {
 
     import com.digitalcipher.spiked.logging.MessageNames.PHASE_TRANSITION
 
-    override def write(transition: PhaseTransition): JsValue = JsObject(PHASE_TRANSITION.name -> JsObject(
-      "neuron_id" -> JsString(transition.neuronId),
-      "timestamp" -> transition.timestamp.toJson,
-      "transition_type" -> JsString(transition.transitionType),
-      "membrane_potential" -> transition.membranePotential.toJson,
-      "firing_rate" -> transition.firingRate.toJson
-    ))
+    override def write(transition: PhaseTransition): JsValue = JsObject(
+      TYPE -> JsString(PHASE_TRANSITION.name),
+      MESSAGE -> JsObject(
+        NEURON_ID -> JsString(transition.neuronId),
+        TIMESTAMP -> transition.timestamp.toJson,
+        TRANSITION_TYPE -> JsString(transition.transitionType),
+        MEMBRANE_POTENTIAL -> transition.membranePotential.toJson,
+        FIRING_RATE -> transition.firingRate.toJson
+      ))
 
-    override def read(value: JsValue): PhaseTransition = value.asJsObject.getFields(PHASE_TRANSITION.name) match {
-      case Seq(transition) => transition.asJsObject.getFields(
-        "neuron_id",
-        "timestamp",
-        "transition_type",
-        "membrane_potential",
-        "firing_rate"
-      ) match {
-        case Seq(JsString(neuronId), timestamp, JsString(transitionType), membranePotential, firingRate) => PhaseTransition(
-          neuronId = neuronId,
-          timestamp = timestamp.convertTo[Time],
-          transitionType = transitionType,
-          membranePotential = membranePotential.convertTo[ElectricPotential],
-          firingRate = firingRate.convertTo[Frequency]
-        )
-        case _ => deserializationError("(neuron_id, timestamp, transition_type, membrane_potential, firing_rate) expected")
+    override def read(value: JsValue): PhaseTransition = value.asJsObject.getFields(TYPE, MESSAGE) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (PHASE_TRANSITION.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, TRANSITION_TYPE, MEMBRANE_POTENTIAL, FIRING_RATE) match {
+          case Seq(transition) => transition.asJsObject.getFields(NEURON_ID, TIMESTAMP, TRANSITION_TYPE, MEMBRANE_POTENTIAL, FIRING_RATE) match {
+            case Seq(JsString(neuronId), timestamp, JsString(transitionType), membranePotential, firingRate) =>
+              PhaseTransition(
+                neuronId = neuronId,
+                timestamp = timestamp.convertTo[Time],
+                transitionType = transitionType,
+                membranePotential = membranePotential.convertTo[ElectricPotential],
+                firingRate = firingRate.convertTo[Frequency]
+              )
+            case _ => deserializationError(s"($NEURON_ID, $TIMESTAMP, $TRANSITION_TYPE, $MEMBRANE_POTENTIAL, $FIRING_RATE) expected")
+          }
+          case _ => deserializationError(s"(type: ${PHASE_TRANSITION.name}, ...) message expected")
+        }
+        case _ => deserializationError("PhaseTransition expected")
       }
-      case _ => deserializationError("PhaseTransition expected")
     }
   }
-
 }
