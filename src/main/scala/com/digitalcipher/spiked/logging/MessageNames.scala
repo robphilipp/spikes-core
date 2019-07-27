@@ -8,10 +8,10 @@ case object MessageNames {
   val TOPOLOGY: Symbol = 'topology
   val LEARNING: Symbol = 'learning
   val CONNECT: Symbol = 'connect
-  val NETWORK_CONNECTED: Symbol = 'network_connected
+  val NETWORK_CONNECTED: Symbol = 'networkConnected
   val REGISTER: Symbol = 'register
   val WEIGHT_UPDATE: Symbol = 'learn
-  val INTRINSIC_PLASTICITY_UPDATE: Symbol = 'intrinsic_plasticity
+  val INTRINSIC_PLASTICITY_UPDATE: Symbol = 'intrinsicPlasticity
   val SIGNAL_RECEIVED: Symbol = 'receive
   val MEMBRANE_POTENTIAL_UPDATE: Symbol = 'update
   val PHASE_TRANSITION = 'transition
