@@ -7,7 +7,7 @@ import com.digitalcipher.spiked.topology.coords.spatial.Points.Cartesian
 import spray.json.DefaultJsonProtocol
 import squants.Time
 import squants.electro.{ElectricPotential, Microvolts, Millivolts, Volts}
-import squants.space.Microns
+import squants.space.{Centimeters, Microns, Millimeters}
 import squants.time._
 
 /**
@@ -88,11 +88,17 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     override def write(point: Cartesian): JsValue = JsObject(
       "x" -> JsNumber(point._1.toMicrons),
       "y" -> JsNumber(point._2.toMicrons),
-      "z" -> JsNumber(point._3.toMicrons)
+      "z" -> JsNumber(point._3.toMicrons),
+      "units" -> JsString("µm")
     )
 
-    override def read(value: JsValue): Cartesian = value.asJsObject.getFields("x", "y", "z") match {
-      case Seq(JsNumber(x), JsNumber(y), JsNumber(z)) => Cartesian((Microns(x), Microns(y), Microns(z)))
+    override def read(value: JsValue): Cartesian = value.asJsObject.getFields("x", "y", "z", "units") match {
+      case Seq(JsNumber(x), JsNumber(y), JsNumber(z), JsString(units)) => units match {
+        case "µm" => Cartesian((Microns(x), Microns(y), Microns(z)))
+        case "mm" => Cartesian(Millimeters(x), Millimeters(y), Millimeters(z))
+        case "cm" => Cartesian(Centimeters(x), Centimeters(y), Centimeters(z))
+        case _ => deserializationError(s"Distance units must be µm, mm, cm; specified: $units")
+      }
       case _ => deserializationError("Cartesian point (spatial) expected")
     }
   }
