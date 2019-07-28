@@ -27,7 +27,7 @@ lazy val commonSettings = Seq(
 //
 // dependencies
 //
-lazy val akkaVersion = "2.5.22"
+lazy val akkaVersion = "2.5.23"
 lazy val kafkaCakeVersion = "2.1.0"
 lazy val logbackVersion = "1.2.3"
 

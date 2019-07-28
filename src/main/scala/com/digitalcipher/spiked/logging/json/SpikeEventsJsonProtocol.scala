@@ -15,7 +15,7 @@ import squants.time._
   */
 object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
-  private val MESSAGE: String = "message"
+  private val PAYLOAD: String = "payload"
   private val TYPE: String = "type"
 
   private val NEURON_ID = "neuronId"
@@ -65,10 +65,10 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(summary: NetworkSummary) = JsObject(
       TYPE -> JsString(SUMMARY.name),
-      MESSAGE -> summary.counts.toJson
+      PAYLOAD -> summary.counts.toJson
     )
 
-    override def read(value: JsValue): NetworkSummary = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): NetworkSummary = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (SUMMARY.name, countMap) => countMap.asJsObject match {
           case Seq(JsObject(counts)) =>
@@ -169,13 +169,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(topology: NetworkTopology): JsValue = JsObject(
       TYPE -> JsString(TOPOLOGY.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(topology.neuronId),
         LOCATION -> topology.location.toJson
       )
     )
 
-    override def read(value: JsValue): NetworkTopology = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): NetworkTopology = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (TOPOLOGY.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, LOCATION) match {
           case Seq(JsString(neuronId), location) => NetworkTopology(neuronId, location.convertTo[Cartesian])
@@ -196,13 +196,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(connection: ConnectedPostSynaptic): JsValue = JsObject(
       TYPE -> JsString(CONNECT.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         PRE_SYNAPTIC -> JsString(connection.preSynapticId),
         POST_SYNAPTIC -> JsString(connection.postSynapticId),
         SIGNAL_DELAY -> connection.signalDelay.toJson
       ))
 
-    override def read(value: JsValue): ConnectedPostSynaptic = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): ConnectedPostSynaptic = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (CONNECT.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, SIGNAL_DELAY) match {
           case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(signalDelay)) =>
@@ -228,14 +228,14 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(learning: StdpHardLimitLearningFunction): JsValue = JsObject(
       TYPE -> JsString(LEARNING.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         INHIBITORY_AMPLITUDE -> JsNumber(learning.inhibitionAmplitude),
         INHIBITORY_PERIOD -> learning.inhibitionPeriod.toJson,
         EXCITATION_AMPLITUDE -> JsNumber(learning.excitationAmplitude),
         EXCITATION_PERIOD -> learning.excitationPeriod.toJson
       ))
 
-    override def read(value: JsValue): StdpHardLimitLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): StdpHardLimitLearningFunction = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (LEARNING.name, learning) => learning.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
           case Seq(neuron) => neuron.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
@@ -264,14 +264,14 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(learning: StdpSoftLimitLearningFunction): JsValue = JsObject(
       TYPE -> JsString(LEARNING.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         INHIBITORY_AMPLITUDE -> JsNumber(learning.inhibitionAmplitude),
         INHIBITORY_PERIOD -> learning.inhibitionPeriod.toJson,
         EXCITATION_AMPLITUDE -> JsNumber(learning.excitationAmplitude),
         EXCITATION_PERIOD -> learning.excitationPeriod.toJson
       ))
 
-    override def read(value: JsValue): StdpSoftLimitLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): StdpSoftLimitLearningFunction = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (LEARNING.name, learning) => learning.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
           case Seq(neuron) => neuron.asJsObject.getFields(INHIBITORY_AMPLITUDE, INHIBITORY_PERIOD, EXCITATION_AMPLITUDE, EXCITATION_PERIOD) match {
@@ -300,13 +300,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(learning: StdpAlphaLearningFunction): JsValue = JsObject(
       TYPE -> JsString(LEARNING.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         BASELINE -> JsNumber(learning.baseline),
         LEARNING_RATE -> JsNumber(learning.learningRate),
         TIME_CONSTANT -> learning.timeConstant.toJson
       ))
 
-    override def read(value: JsValue): StdpAlphaLearningFunction = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): StdpAlphaLearningFunction = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (LEARNING.name, learning) => learning.asJsObject.getFields(BASELINE, LEARNING_RATE, TIME_CONSTANT) match {
           case Seq(neuron) => neuron.asJsObject.getFields(BASELINE, LEARNING_RATE, TIME_CONSTANT) match {
@@ -334,7 +334,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(connected: NetworkConnected): JsValue = JsObject(
       TYPE -> JsString(CONNECT.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         PRE_SYNAPTIC -> JsString(connected.preSynapticId),
         POST_SYNAPTIC -> JsString(connected.postSynapticId),
         INITIAL_WEIGHT -> JsNumber(connected.initialWeight),
@@ -344,7 +344,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         DISTANCE -> JsNumber(connected.distance.toMicrons)
       ))
 
-    override def read(value: JsValue): NetworkConnected = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): NetworkConnected = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (CONNECT.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
           case Seq(connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
@@ -375,13 +375,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(registration: PreSynapticRegistration): JsValue = JsObject(
       TYPE -> JsString(REGISTER.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(registration.neuronId),
         PRE_SYNAPTIC -> JsString(registration.preSynapticId),
         INITIAL_WEIGHT -> JsNumber(registration.weight)
       ))
 
-    override def read(value: JsValue): PreSynapticRegistration = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): PreSynapticRegistration = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (REGISTER.name, registration) => registration.asJsObject.getFields(NEURON_ID, PRE_SYNAPTIC, INITIAL_WEIGHT) match {
           case Seq(JsString(neuronId), JsString(preSynapticId), JsNumber(weight)) =>
@@ -403,7 +403,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(updated: StdpWeightUpdated): JsValue = JsObject(
       TYPE -> JsString(WEIGHT_UPDATE.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(updated.neuronId),
         SOURCE_ID -> JsString(updated.sourceId),
         PREVIOUS_WEIGHT -> JsNumber(updated.previousWeight),
@@ -414,7 +414,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         SIGNAL_TIME -> updated.timeWindow.toJson
       ))
 
-    override def read(value: JsValue): StdpWeightUpdated = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): StdpWeightUpdated = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (WEIGHT_UPDATE.name, update) => update.asJsObject.getFields(NEURON_ID, SOURCE_ID, PREVIOUS_WEIGHT, NEW_WEIGHT, ADJUSTMENT, TIME_WINDOW, STDP_TIME, SIGNAL_TIME) match {
           case Seq(updated) => updated.asJsObject.getFields(NEURON_ID, SOURCE_ID, PREVIOUS_WEIGHT, NEW_WEIGHT, ADJUSTMENT, TIME_WINDOW, STDP_TIME, SIGNAL_TIME) match {
@@ -447,13 +447,13 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(plasticity: IntrinsicPlasticityUpdated): JsValue = JsObject(
       TYPE -> JsString(INTRINSIC_PLASTICITY_UPDATE.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(plasticity.neuronId),
         TIMESTAMP -> plasticity.timestamp.toJson,
         PLASTICITY -> plasticity.intrinsicPlasticity.toJson
       ))
 
-    override def read(value: JsValue): IntrinsicPlasticityUpdated = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): IntrinsicPlasticityUpdated = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (INTRINSIC_PLASTICITY_UPDATE.name, update) => update.asJsObject.getFields(NEURON_ID, TIMESTAMP, PLASTICITY) match {
           case Seq(JsString(neuronId), JsNumber(timestamp), JsNumber(plasticity)) =>
@@ -479,7 +479,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(signal: SignalReceived): JsValue = JsObject(
       TYPE -> JsString(SIGNAL_RECEIVED.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(signal.neuronId),
         SOURCE_ID -> JsString(signal.sourceId),
         TIMESTAMP -> signal.timestamp.toJson,
@@ -488,7 +488,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         SIGNAL_INTENSITY -> signal.signalIntensity.toJson
       ))
 
-    override def read(value: JsValue): SignalReceived = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): SignalReceived = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (SIGNAL_RECEIVED.name, signal) => signal.asJsObject.getFields(NEURON_ID, SOURCE_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
           case Seq(signal) => signal.asJsObject.getFields(NEURON_ID, SOURCE_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
@@ -519,7 +519,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(update: MembranePotentialUpdate): JsValue = JsObject(
       TYPE -> JsString(MEMBRANE_POTENTIAL_UPDATE.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(update.neuronId),
         TIMESTAMP -> update.timestamp.toJson,
         LAST_EVENT_TIME -> update.lastEventTime.toJson,
@@ -527,7 +527,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         MEMBRANE_POTENTIAL -> update.membranePotential.toJson
       ))
 
-    override def read(value: JsValue): MembranePotentialUpdate = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): MembranePotentialUpdate = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (MEMBRANE_POTENTIAL_UPDATE.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_EVENT_TIME, LAST_FIRE_TIME, MEMBRANE_POTENTIAL) match {
           case Seq(signal) => signal.asJsObject.getFields() match {
@@ -557,14 +557,14 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(spike: Spiked): JsValue = JsObject(
       TYPE -> JsString(SPIKED.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(spike.neuronId),
         TIMESTAMP -> spike.timestamp.toJson,
         LAST_FIRE_TIME -> spike.lastFireTime.toJson,
         SIGNAL_INTENSITY -> spike.signalIntensity.toJson
       ))
 
-    override def read(value: JsValue): Spiked = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): Spiked = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (SPIKED.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
           case Seq(spike) => spike.asJsObject.getFields(NEURON_ID, TIMESTAMP, LAST_FIRE_TIME, SIGNAL_INTENSITY) match {
@@ -592,7 +592,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def write(transition: PhaseTransition): JsValue = JsObject(
       TYPE -> JsString(PHASE_TRANSITION.name),
-      MESSAGE -> JsObject(
+      PAYLOAD -> JsObject(
         NEURON_ID -> JsString(transition.neuronId),
         TIMESTAMP -> transition.timestamp.toJson,
         TRANSITION_TYPE -> JsString(transition.transitionType),
@@ -600,7 +600,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         FIRING_RATE -> transition.firingRate.toJson
       ))
 
-    override def read(value: JsValue): PhaseTransition = value.asJsObject.getFields(TYPE, MESSAGE) match {
+    override def read(value: JsValue): PhaseTransition = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
         case (PHASE_TRANSITION.name, neuron) => neuron.asJsObject.getFields(NEURON_ID, TIMESTAMP, TRANSITION_TYPE, MEMBRANE_POTENTIAL, FIRING_RATE) match {
           case Seq(transition) => transition.asJsObject.getFields(NEURON_ID, TIMESTAMP, TRANSITION_TYPE, MEMBRANE_POTENTIAL, FIRING_RATE) match {
