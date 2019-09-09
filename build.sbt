@@ -41,7 +41,7 @@ lazy val app = (project in file(".")).
     //
     libraryDependencies ++= Seq(
       // scala modules
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.1",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
       // utilities for parsing and describing spikes networks
       "com.digitalcipher.spiked" % "spikes-utils_2.12" % "0.0.1-snapshot",

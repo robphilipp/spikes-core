@@ -9,6 +9,7 @@ import com.digitalcipher.spiked.construction.NetworkBuilder.{CreateActorSystem, 
 import com.digitalcipher.spiked.construction.description.{GroupDescription, NetworkDescription, RemoteGroupParams}
 import com.digitalcipher.spiked.construction.parsing.DnaParser
 import com.digitalcipher.spiked.neurons.SignalClock
+import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
 import squants.Time
 
@@ -21,6 +22,17 @@ import scala.io.{BufferedSource, Source}
   * spikes neural network framework.
   */
 object SpikesAppUtils {
+
+  /**
+    * Loads the specified configuration file for the application, with overrides coming from the spikes-core
+    * library's resources.
+    *
+    * @param configFilename The name of the application's configuration file
+    * @return The [[com.typesafe.config.Config]] based on the specified config file name and the base config
+    */
+  def loadConfigFrom(configFilename: String = "application.conf"): Config =
+    ConfigFactory.parseResources(configFilename).withFallback(ConfigFactory.load()).resolve()
+
   /**
     * Builds the network from the specified DNA file, and constructs the network actor-reference. Before calling
     * this method, logging should already be configured so that the network-building events can be logged.

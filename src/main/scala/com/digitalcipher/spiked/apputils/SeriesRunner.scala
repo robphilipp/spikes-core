@@ -12,7 +12,7 @@ import com.digitalcipher.spiked.logging.FileEventLogger.FileLoggingConfiguration
 import com.digitalcipher.spiked.logging.KafkaEventLogger.KafkaConfiguration
 import com.digitalcipher.spiked.neurons.SignalClock
 import com.digitalcipher.spiked.topology.Network.{RetrieveNeurons, SimulationStart, SimulationStartResponse}
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.{Config, ConfigValueFactory}
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
@@ -23,7 +23,7 @@ import scala.util.matching.Regex
   * network simulations.
   * 
   * === SeriesRunner instance ===
-  * There series runner performs a number of common tasks:
+  * The series runner performs a number of common tasks:
   *
   * 1. Sets up the application logging that logs mostly set-up and start-up of the networks
   * 2. Loads the configuration file that specifies whether to run locally or distributed
@@ -58,22 +58,18 @@ import scala.util.matching.Regex
   *                       the simulation is running in real-time.
   * @param appLoggerName  The name of the application logger. This is the logger for setting up the application, and
   *                       not the neural network event logger.
-  * @param configFilename The name of the configuration file in the the resources directory
+  * @param config The configuration for running the series of spikes networks
   * @param systemBaseName The base name of the actor system. When creating more than one actor system, the run
   *                       number will be appended to this name.
   * @param eventLogging   The neural network event loggers to use. By default will use file-event logging.
   */
 class SeriesRunner(timeFactor: Int = 1,
                    appLoggerName: String,
-                   configFilename: String = "application.conf",
+                   config: Config,
                    systemBaseName: String = "spiked_system",
                    eventLogging: Seq[EventLogging] = Seq(FileEventLogging())) {
 
   val logger: Logger = LoggerFactory.getLogger(appLoggerName)
-
-  // load the configuration file for the application, with overrides coming from
-  // the spikes-core library's resources.
-  private val config = ConfigFactory.parseResources(configFilename).withFallback(ConfigFactory.load()).resolve()
 
   // display the source of the configuration
   private val configSource = config.getConfig("config-source")
@@ -85,6 +81,9 @@ class SeriesRunner(timeFactor: Int = 1,
 
   // holds the system-name to port association
   private val portManager = RemotingPortManager(parseRemotingPortsFrom(config).getOrElse(List.empty))
+
+  // the default port for remoting, in case no list of remoting ports was specified
+  private val defaultRemotingPort = config.getInt("akka.remote.netty.tcp.port")
 
   /**
     * Creates a set of actor-systems and neural networks and returns a [[com.digitalcipher.spiked.apputils.SeriesRunner]]
@@ -120,7 +119,7 @@ class SeriesRunner(timeFactor: Int = 1,
         val systemName = s"$systemBaseName-$i"
 
         // check out a remoting port (if remoting)
-        portManager.checkOutRemotingPort(systemName).orElse(Option(config.getInt("akka.remote.netty.tcp.port")))
+        portManager.checkOutRemotingPort(systemName).orElse(Option(defaultRemotingPort))
           .map(port => {
             logger.info("starting to build the network spiked_system-{}; time: {}", i, SignalClock.current())
             val systemConfig = config.withValue("akka.remote.netty.tcp.port", ConfigValueFactory.fromAnyRef(port))
