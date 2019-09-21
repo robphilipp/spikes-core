@@ -103,15 +103,15 @@ class SeriesRunner(timeFactor: Int = 1,
     *   runSimulationSeries(results.successes)
     * }}}
     * @param num           The number of simulations to run in this series
-    * @param dnaFile       The spikes DNA file holding the network description
-    * @param reparseReport When set to `true` then emits a DNA string from the parsed DNA file and reparses it
-    *                      as a test that the parsing and emitting are consistent.
+    * @param description   The spikes DNA describing the network and learning functions
+    * @param reparseReport When set to `true` then emits a DNA string from the parsed DNA file and which it parses
+    *                      again as a test that the parsing and emitting are consistent.
     * @return For each actor system and network successfully created, returns
     *         `(actor_system, network_actor_ref, map(group_name -> group_info))` tuple.
     *         For each actor system or network that could not be built, returns a list of error messages.
     */
   def createNetworks(num: Int = 1,
-                     dnaFile: String,
+                     description: String,
                      reparseReport: Boolean = true): CreateNetworkResults = {
     CreateNetworkResults(
       List.range(1, num+1).map(i => {
@@ -141,7 +141,7 @@ class SeriesRunner(timeFactor: Int = 1,
             val networkResult = buildNetwork(
               actorSystem = system,
               timeFactor = timeFactor,
-              dnaFilename = dnaFile,
+              description = description,
               reparseReport = reparseReport
             )
 

@@ -27,7 +27,7 @@ lazy val commonSettings = Seq(
 //
 // dependencies
 //
-lazy val akkaVersion = "2.5.23"
+lazy val akkaVersion = "2.5.25"
 lazy val kafkaCakeVersion = "2.1.0"
 lazy val logbackVersion = "1.2.3"
 
@@ -44,7 +44,7 @@ lazy val app = (project in file(".")).
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.1.2",
 
       // utilities for parsing and describing spikes networks
-      "com.digitalcipher.spiked" % "spikes-utils_2.12" % "0.0.1-snapshot",
+      "com.digitalcipher.spiked" % "spikes-utils_2.12" % "0.0.2-snapshot",
 
       // akka (2.5.9 previously)
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,

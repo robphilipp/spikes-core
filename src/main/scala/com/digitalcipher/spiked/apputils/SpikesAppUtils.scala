@@ -41,7 +41,7 @@ object SpikesAppUtils {
     * @param timeFactor    The simulation time factor. Each second of simulation time takes 'time-factor' seconds in
     *                      real time. For example, if time-factor is 10, then 1 second of simulated time takes
     *                      10 seconds in real time.
-    * @param dnaFilename   The DNA file describing the network and learning functions
+    * @param description   The DNA describing the network and learning functions
     * @param reparseReport Whether or not to convert the network to a fragment and then reparse it, as a test.
     *                      This is mostly to ensure that the DNA file is getting parsed correctly.
     * @return Either a (network actor-reference, remote groups) pair if successful, or a list of error strings if
@@ -50,80 +50,64 @@ object SpikesAppUtils {
     */
   def buildNetwork(actorSystem: ActorSystem,
                    timeFactor: Int,
-                   dnaFilename: String,
+                   description: String,
                    reparseReport: Boolean = false): Either[List[String], (ActorRef, Map[String, RemoteGroupInfo])] = {
     val logger = LoggerFactory.getLogger("spikes-core-build-network")
-    var source = None: Option[BufferedSource]
-    try {
-      source = Some(Source.fromFile(dnaFilename))
-      // read the description file (over time this will need to be replaced by a streaming parser approach)
-      source
-        .map(src => src.mkString)
-        .map(description => {
-          // attempt to parse the network. the return holds either the failure messages or the network
-          // description instance. if the parsing fails, return the list of errors returned by the parser
-          val parser = DnaParser(validateReference = true)
-          parser
-            .parseDna(description)
-            .map(description => {
-              if (reparseReport) reportReparse(description, parser)
+    // attempt to parse the network. the return holds either the failure messages or the network
+    // description instance. if the parsing fails, return the list of errors returned by the parser
+    val parser = DnaParser(validateReference = true)
+    parser
+      .parseDna(description)
+      .map(description => {
+        if (reparseReport) reportReparse(description, parser)
 
-              // grab the run ID
-              val runId = actorSystem.name
+        // grab the run ID
+        val runId = actorSystem.name
 
-              // create a remote system for each remote group on the node specified in the
-              // network description (.boo) file, and return a map that has the group ID and
-              // the associated port for the new actor system on that node.
-              val remoteGroups: Map[String, RemoteGroupInfo] = createActorSystemsForRemoteGroups(
-                name = runId, groups = description.groups.values, actorSystem = actorSystem
-              )
+        // create a remote system for each remote group on the node specified in the
+        // network description (.boo) file, and return a map that has the group ID and
+        // the associated port for the new actor system on that node.
+        val remoteGroups: Map[String, RemoteGroupInfo] = createActorSystemsForRemoteGroups(
+          name = runId, groups = description.groups.values, actorSystem = actorSystem
+        )
 
-              // create the network-builder actor, which runs locally, calling the (possibly remote) neuron creator
-              val networkBuilder = actorSystem.actorOf(
-                NetworkBuilder.props(timeFactor = timeFactor, groupActorSystems = remoteGroups),
-                s"network_builder.$runId"
-              )
+        // create the network-builder actor, which runs locally, calling the (possibly remote) neuron creator
+        val networkBuilder = actorSystem.actorOf(
+          NetworkBuilder.props(timeFactor = timeFactor, groupActorSystems = remoteGroups),
+          s"network_builder.$runId"
+        )
 
-              import akka.pattern.ask
-              // -------- debugging code
-              // send test a couple of test messages and await their response
-              //      var future = ask(networkBuilder, TestMessage())(Timeout(10 seconds))
-              //      println("waiting for response from empty test message")
-              //      println(Await.result(future, 10 seconds))
-              //
-              //      future = ask(networkBuilder, TestMessageWithArg("argument", 314))(Timeout(10 seconds))
-              //      println("waiting for response from test message with content")
-              //      println(Await.result(future, 10 seconds))
-              //
-              //      println(s"weight stickiness functions: ${description.weightStickinessFunctions}")
-              //      println("sending serialization test message")
-              //      future = ask(networkBuilder, SerializationTestMessage(description.weightStickinessFunctions))(Timeout(10 seconds))
-              //      println("waiting for response from serialization test message")
-              //      println(Await.result(future, 10 seconds))
-              //--------
+        import akka.pattern.ask
+        // -------- debugging code
+        // send test a couple of test messages and await their response
+        //      var future = ask(networkBuilder, TestMessage())(Timeout(10 seconds))
+        //      println("waiting for response from empty test message")
+        //      println(Await.result(future, 10 seconds))
+        //
+        //      future = ask(networkBuilder, TestMessageWithArg("argument", 314))(Timeout(10 seconds))
+        //      println("waiting for response from test message with content")
+        //      println(Await.result(future, 10 seconds))
+        //
+        //      println(s"weight stickiness functions: ${description.weightStickinessFunctions}")
+        //      println("sending serialization test message")
+        //      future = ask(networkBuilder, SerializationTestMessage(description.weightStickinessFunctions))(Timeout(10 seconds))
+        //      println("waiting for response from serialization test message")
+        //      println(Await.result(future, 10 seconds))
+        //--------
 
-              // send message to build the network from its descriptions
-              import scala.concurrent.duration._
-              logger.debug("sending request to build network")
-              val networkFuture = ask(networkBuilder, NetworkFromDescription(description, s"spikes.$runId"))(Timeout(10 seconds))
-                .mapTo[Future[ActorRef]]
-                .flatten
+        // send message to build the network from its descriptions
+        import scala.concurrent.duration._
+        logger.debug("sending request to build network")
+        val networkFuture = ask(networkBuilder, NetworkFromDescription(description, s"spikes.$runId"))(Timeout(10 seconds))
+          .mapTo[Future[ActorRef]]
+          .flatten
 
-              val network: ActorRef = Await.result(networkFuture.mapTo[ActorRef], 10 seconds)
-              logger.debug("network future: {}", networkFuture)
-              logger.info("created spikes neural network actor; actor name: {}", network.path.name)
-              Right((network, remoteGroups))
-            })
-            .getOrElse(Left(List(s"Unable to parse the DNA file; filename: $dnaFilename")))
-        })
-        .getOrElse(Left(List()))
-    }
-    catch {
-      case e: IOException => Left(List(s"Unable to open DNA file; filename: $dnaFilename"))
-    }
-    finally {
-      source.foreach(src => src.close())
-    }
+        val network: ActorRef = Await.result(networkFuture.mapTo[ActorRef], 10 seconds)
+        logger.debug("network future: {}", networkFuture)
+        logger.info("created spikes neural network actor; actor name: {}", network.path.name)
+        Right((network, remoteGroups))
+      })
+      .getOrElse(Left(List(s"Unable to parse the DNA; dna: $description")))
   }
 
   /**
