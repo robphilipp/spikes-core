@@ -59,6 +59,7 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
 
   // send messages with futures requires an execution context, and by importing this, the implicit values are supplied
   // to the method (timeout, execution context (i.e. this actor's dispatcher))
+
   import context.dispatcher
 
   /**
@@ -76,30 +77,41 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
     // each group (key) is associated with its neuron creator actor-ref (value)
     val groups: Map[String, ActorRef] = description.groups.values.map(group => neuronCreatorActor(group)).toMap
 
-    // batch the neurons into their respective groups, and then make a call to each group's neuron creation
-    // actor to create the neurons for that group
     import akka.pattern.ask
-    val creators: Map[ActorRef, List[NeuronDescription]] = description.neurons.values.toList.groupBy(nd => groups(nd.groupId))
 
-    // send a message to the neuron creator to create the neuron
-    val createdFuture: Future[List[CreateNeuronsResponse]] = Future.sequence(
-      creators.map({ case (actorRef, descriptions) =>
-        ask(context.actorSelection(actorRef.path), CreateNeurons(descriptions))(Timeout(10 seconds)).mapTo[CreateNeuronsResponse]
-      }).toList
-    )
-
-    // send the network a message for each neuron requesting that the network add that neuron
-    val addedFuture: Future[List[AddNeuronsResponse]] = createdFuture.map(neuronResponses => {
-      neuronResponses.map(neuronGroup => ask(network, AddNeurons(neuronGroup.neurons.toList))(Timeout(10 seconds)).mapTo[AddNeuronsResponse])
-    }).flatMap(futures => Future.sequence(futures))
-
-    // send messages to connect the neurons (and do some logging of the network' topology, learning functions, and
-    // weight stickiness functions)
-    val connectionsFuture: Future[ConnectNeuronsResponse] = addedFuture
+    // return the network wrapped in a future
+    Future
+      .sequence(
+        // batch the neurons into their respective groups, and then make a call to each group's neuron creation
+        // actor to create the neurons for that group
+        description.neurons
+          .values
+          .toList
+          .groupBy(nd => groups(nd.groupId))
+          // send a message to the neuron creator to create the neuron
+          .map({ case (actorRef, descriptions) =>
+            ask(context.actorSelection(actorRef.path), CreateNeurons(descriptions))(Timeout(10 seconds))
+              .mapTo[CreateNeuronsResponse]
+          })
+          .toList
+      )
+      // send the network a message for each neuron requesting that the network add that neuron
+      .map(neuronResponses => neuronResponses
+          .map(neuronGroup =>
+            ask(network, AddNeurons(neuronGroup.neurons.toList))(Timeout(10 seconds)).mapTo[AddNeuronsResponse]
+          )
+      )
+      .flatMap(futures => Future.sequence(futures))
+      // send messages to connect the neurons (and do some logging of the network' topology, learning functions, and
+      // weight stickiness functions)
       .map(neuronResponses => {
+        // create the network topology
+        val neurons = neuronResponses
+          .flatMap(response => response.neurons)
+          .map(response => (response._1.path.name, (response._1, response._2.cartesian)))
+          .toMap
+
         // log the topology
-        val neurons = neuronResponses.flatMap(response => response.neurons)
-          .map(response => (response._1.path.name, (response._1, response._2.cartesian))).toMap
         logNetworkTopology(neurons)
 
         // log all the learning functions
@@ -114,10 +126,9 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
           ))
         // Future[ConnectNeuronsResponse]
         ask(network, ConnectNeurons(connections))(Timeout(10 seconds)).mapTo[ConnectNeuronsResponse]
-      }).flatten
-
-    // return the network wrapped in a future
-    connectionsFuture.map(_ => network)
+      })
+      .flatten
+      .map(_ => network)
   }
 
   /**
@@ -128,10 +139,10 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
   private def logNetworkTopology(neurons: Map[String, (ActorRef, Coordinates.Cartesian)]): Unit = {
     val neuronTypes: Map[NeuronType, Int] = neuronTypeCount(neurons)
 
-    // send the network summary to the log, and, optionally, kafka
+    // send the network summary to the log (file, kafka, ...)
     EventLogger.log(context.system.name, () => NetworkSummary(neuronTypes))
 
-    // send the neuron topology to the log and, optionally, kafka
+    // send the neuron topology to the log (file, kafka, ...)
     neurons.foreach(entry => EventLogger.log(context.system.name, () => NetworkTopology(entry._1, entry._2._2.point)))
   }
 
@@ -287,23 +298,27 @@ object NetworkBuilder {
 
   /**
     * Message for creating a remote actor system
+    *
     * @param name The name of the actor system to create
     */
   case class CreateActorSystem(name: String)
 
   /**
     * Message for destroying a remote actor system
+    *
     * @param name The name of the actor system to destroy
     */
   case class DestroyActorSystem(name: String)
 
   /**
     * Holds the actor reference and the port for the remote group
+    *
     * @param systemManager The actor reference the remote system manager
-    * @param port The port on which the remote-group system listens (this will be different from the
-    *             port on which the manager listens; it is assigned when the remote group is created)
+    * @param port          The port on which the remote-group system listens (this will be different from the
+    *                      port on which the manager listens; it is assigned when the remote group is created)
     */
   case class RemoteGroupInfo(systemManager: ActorRef, port: Int)
+
 }
 
 //case class TestMessage()
