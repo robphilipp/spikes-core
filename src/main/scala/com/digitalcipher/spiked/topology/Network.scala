@@ -128,10 +128,9 @@ class Network extends Actor {
   }
 
   private def neuronsOfPattern(pattern: Regex): Seq[ActorRef] = {
-    neurons.keys.filter(ref => pattern.findFirstIn(ref.path.name).exists(_ => true)).toSeq
+    neurons.keys.filter(ref => pattern.findFirstIn(ref.path.name).isDefined).toSeq
   }
 
-//  private def setInitialTime(clock: SignalClock): SimulationStartResponse = {
   private def setInitialTime(time: Long): SimulationStartResponse = {
     // todo use futures
     neurons.keys.foreach(neuron => neuron ! InitializeTime(time))

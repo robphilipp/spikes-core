@@ -4,6 +4,8 @@ import akka.actor.{Actor, ActorRef}
 import akka.event.Logging
 import com.digitalcipher.spiked.construction.NeuronCreator._
 import com.digitalcipher.spiked.construction.description.{NeuronDescription, _}
+import com.digitalcipher.spiked.logging.EventLogger
+import com.digitalcipher.spiked.logging.messages.NeuronCreated
 import com.digitalcipher.spiked.neurons.weights.decay.{Exponential, NoDecay}
 import com.digitalcipher.spiked.neurons.weights.limit.{Bounded, Unbounded, WeightLimiterFunction}
 import com.digitalcipher.spiked.neurons.{BistableIntegrator, MonostableIntegrator, Neuron, SignalReleaseProbability}
@@ -92,6 +94,16 @@ class NeuronCreator extends Actor {
     // the additional, neuron-type-specific parameters encode the type of neuron dynamics
     description.neuronSpecificParams match {
       case MonostableIntegratorParams(spikeThreshold) =>
+        EventLogger.log(
+          context.system.name,
+          () => NeuronCreated(
+            description.neuronId,
+            NeuronDescription.MONOSTABLE_INTEGRATOR.name,
+            description.inhibitor,
+            description.locationDescription.cartesian.point
+          )
+        )
+
         val neuronProps = MonostableIntegrator.props(
           timeFactor = timeFactor,
           id = description.neuronId,
@@ -115,7 +127,18 @@ class NeuronCreator extends Actor {
         )
         (context.actorOf(neuronProps, description.neuronId), description.locationDescription)
 
+
       case BistableIntegratorParams(limitCycleThreshold, restingStateThreshold, fireRate) =>
+        EventLogger.log(
+          context.system.name,
+          () => NeuronCreated(
+            description.neuronId,
+            NeuronDescription.BISTABLE_INTEGRATOR.name,
+            description.inhibitor,
+            description.locationDescription.cartesian.point
+          )
+        )
+
         val neuronProps = BistableIntegrator.props(
           timeFactor = timeFactor,
           id = description.neuronId,

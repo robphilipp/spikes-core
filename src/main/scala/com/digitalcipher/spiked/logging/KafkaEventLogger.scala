@@ -60,6 +60,7 @@ private[logging] class KafkaEventLogger {
     logIfConfigured(message match {
       case summary: NetworkSummary => producerRecord(SUMMARY.name, summary.toJson.compactPrint)
       case topology: NetworkTopology => producerRecord(TOPOLOGY.name, topology.toJson.compactPrint)
+      case neuronCreated: NeuronCreated => producerRecord(NEURON_CREATED.name, neuronCreated.toJson.compactPrint)
       case learning: StdpHardLimitLearningFunction => producerRecord(LEARNING.name, learning.toJson.compactPrint)
       case learning: StdpSoftLimitLearningFunction => producerRecord(LEARNING.name, learning.toJson.compactPrint)
       case learning: StdpAlphaLearningFunction => producerRecord(LEARNING.name, learning.toJson.compactPrint)

@@ -6,6 +6,7 @@ package com.digitalcipher.spiked.logging
 case object MessageNames {
   val SUMMARY: Symbol = 'summary
   val TOPOLOGY: Symbol = 'topology
+  val NEURON_CREATED: Symbol = 'neuronCreated
   val LEARNING: Symbol = 'learning
   val CONNECT: Symbol = 'connect
   val NETWORK_CONNECTED: Symbol = 'networkConnected

@@ -20,6 +20,8 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
   private val NEURON_ID = "neuronId"
   private val LOCATION = "location"
+  private val NEURON_TYPE = "neuronType"
+  private val INHIBITORY = "inhibitory"
   private val PRE_SYNAPTIC = "preSynaptic"
   private val POST_SYNAPTIC = "postSynaptic"
   private val SIGNAL_DELAY = "signalDelay"
@@ -184,6 +186,31 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         case _ => deserializationError(s"(type: ${TOPOLOGY.name}, ...) message expected")
       }
       case _ => deserializationError("NetworkTopology expected")
+    }
+  }
+
+  implicit object NeuronCreatedJsonFormat extends RootJsonFormat[NeuronCreated] {
+    import com.digitalcipher.spiked.logging.MessageNames.NEURON_CREATED
+
+    override def write(createdNeuron: NeuronCreated): JsValue = JsObject(
+      TYPE -> JsString(NEURON_CREATED.name),
+      PAYLOAD -> JsObject(
+        NEURON_ID -> JsString(createdNeuron.neuronId),
+        NEURON_TYPE -> JsString(createdNeuron.neuronType),
+        INHIBITORY -> JsBoolean(createdNeuron.inhibitory),
+        LOCATION -> createdNeuron.location.toJson
+      )
+    )
+
+    override def read(value: JsValue): NeuronCreated = value.asJsObject.getFields(TYPE, PAYLOAD) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (NEURON_CREATED.name, createdNeuron) => createdNeuron.asJsObject.getFields(NEURON_ID, NEURON_TYPE, INHIBITORY, LOCATION) match {
+          case Seq(JsString(neuronId), JsString(neuronType), JsBoolean(inhibitory), location) => NeuronCreated(neuronId, neuronType, inhibitory, location.convertTo[Cartesian])
+          case _ => deserializationError(s"($NEURON_ID, $NEURON_TYPE, $INHIBITORY, $LOCATION) expected")
+        }
+        case _ => deserializationError(s"(type: ${NEURON_CREATED.name}, ...) message expected")
+      }
+      case _ => deserializationError("NeuronCreated expected")
     }
   }
 
