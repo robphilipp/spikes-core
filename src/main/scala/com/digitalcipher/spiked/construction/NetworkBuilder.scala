@@ -128,7 +128,10 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
         ask(network, ConnectNeurons(connections))(Timeout(10 seconds)).mapTo[ConnectNeuronsResponse]
       })
       .flatten
-      .map(_ => network)
+      .map(_ => {
+        EventLogger.log(context.system.name, () => NetworkCreated(deploymentName))
+        network
+      })
   }
 
   /**

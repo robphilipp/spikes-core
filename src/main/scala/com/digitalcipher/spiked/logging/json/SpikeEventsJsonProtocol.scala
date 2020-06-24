@@ -18,6 +18,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   private val PAYLOAD: String = "payload"
   private val TYPE: String = "type"
 
+  private val NETWORK_ID = "networkId"
   private val NEURON_ID = "neuronId"
   private val LOCATION = "location"
   private val NEURON_TYPE = "neuronType"
@@ -215,6 +216,31 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
   }
 
   /**
+    * Network created
+    */
+  implicit object NetworkCreatedJsonFormat extends RootJsonFormat[NetworkCreated] {
+    import com.digitalcipher.spiked.logging.MessageNames.NETWORK_CREATED
+
+    override def write(createdNetwork: NetworkCreated): JsValue = JsObject(
+      TYPE -> JsString(NETWORK_CREATED.name),
+      PAYLOAD -> JsObject(
+        NETWORK_ID -> JsString(createdNetwork.networkId),
+      )
+    )
+
+    override def read(value: JsValue): NetworkCreated = value.asJsObject.getFields(TYPE, PAYLOAD) match {
+      case Seq(JsString(messageType), message) => (messageType, message) match {
+        case (NETWORK_CREATED.name, createdNetwork) => createdNetwork.asJsObject.getFields(NETWORK_ID) match {
+          case Seq(JsString(networkId)) => NetworkCreated(networkId)
+          case _ => deserializationError(s"($NETWORK_ID expected")
+        }
+        case _ => deserializationError(s"(type: ${NETWORK_CREATED.name}, ...) message expected")
+      }
+      case _ => deserializationError("NetworkCreated expected")
+    }
+  }
+
+  /**
     * Post-synaptic neuron connected
     */
   implicit object ConnectedPostSynapticJsonFormat extends RootJsonFormat[ConnectedPostSynaptic] {
@@ -357,10 +383,10 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     */
   implicit object NeuronConnectionJsonFormat extends RootJsonFormat[NetworkConnected] {
 
-    import com.digitalcipher.spiked.logging.MessageNames.CONNECT
+    import com.digitalcipher.spiked.logging.MessageNames.NETWORK_CONNECTED
 
     override def write(connected: NetworkConnected): JsValue = JsObject(
-      TYPE -> JsString(CONNECT.name),
+      TYPE -> JsString(NETWORK_CONNECTED.name),
       PAYLOAD -> JsObject(
         PRE_SYNAPTIC -> JsString(connected.preSynapticId),
         POST_SYNAPTIC -> JsString(connected.postSynapticId),
@@ -373,7 +399,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
 
     override def read(value: JsValue): NetworkConnected = value.asJsObject.getFields(TYPE, PAYLOAD) match {
       case Seq(JsString(messageType), message) => (messageType, message) match {
-        case (CONNECT.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
+        case (NETWORK_CONNECTED.name, connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
           case Seq(connection) => connection.asJsObject.getFields(PRE_SYNAPTIC, POST_SYNAPTIC, INITIAL_WEIGHT, EQUILIBRIUM_WEIGHT, PRE_SYNAPTIC_LOCATION, POST_SYNAPTIC_LOCATION, DISTANCE) match {
             case Seq(JsString(preSynapticId), JsString(postSynapticId), JsNumber(initialWeight), JsNumber(equilibriumWeight), preSynapticLocation, postSynapticLocation, JsNumber(distance)) => NetworkConnected(
               preSynapticId = preSynapticId,
@@ -386,7 +412,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
             )
             case _ => deserializationError(s"($PRE_SYNAPTIC, $POST_SYNAPTIC, $INITIAL_WEIGHT, $EQUILIBRIUM_WEIGHT, $PRE_SYNAPTIC_LOCATION, $POST_SYNAPTIC_LOCATION, $DISTANCE) expected")
           }
-          case _ => deserializationError(s"(type: ${CONNECT.name}, ...) message expected")
+          case _ => deserializationError(s"(type: ${NETWORK_CONNECTED.name}, ...) message expected")
         }
         case _ => deserializationError("NetworkConnected expected")
       }

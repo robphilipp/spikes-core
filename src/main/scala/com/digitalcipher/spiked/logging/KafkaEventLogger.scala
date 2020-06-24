@@ -67,6 +67,7 @@ private[logging] class KafkaEventLogger {
       case connection: NetworkConnected => producerRecord(NETWORK_CONNECTED.name, connection.toJson.compactPrint)
       case postSynapticConnection: ConnectedPostSynaptic => producerRecord(CONNECT.name, postSynapticConnection.toJson.compactPrint)
       case registration: PreSynapticRegistration => producerRecord(REGISTER.name, registration.toJson.compactPrint)
+      case networkCreated: NetworkCreated => producerRecord(NETWORK_CREATED.name, networkCreated.toJson.compactPrint)
       case weightUpdated: StdpWeightUpdated => producerRecord(WEIGHT_UPDATE.name, weightUpdated.toJson.compactPrint)
       case intrinsicPlasticityUpdated: IntrinsicPlasticityUpdated => producerRecord(INTRINSIC_PLASTICITY_UPDATE.name, intrinsicPlasticityUpdated.toJson.compactPrint)
       case signalReceived: SignalReceived => producerRecord(SIGNAL_RECEIVED.name, signalReceived.toJson.compactPrint)
