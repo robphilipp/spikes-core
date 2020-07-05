@@ -464,7 +464,7 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
         ADJUSTMENT -> JsNumber(updated.adjustment),
         TIME_WINDOW -> updated.timeWindow.toJson,
         STDP_TIME -> updated.stdpTime.toJson,
-        SIGNAL_TIME -> updated.timeWindow.toJson
+        SIGNAL_TIME -> updated.signalTime.toJson
       ))
 
     override def read(value: JsValue): StdpWeightUpdated = value.asJsObject.getFields(TYPE, PAYLOAD) match {
