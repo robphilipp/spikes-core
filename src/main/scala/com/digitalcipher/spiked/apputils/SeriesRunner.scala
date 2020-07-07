@@ -209,8 +209,9 @@ class SeriesRunner(timeFactor: Int = 1,
     implicit val executionContext: ExecutionContextExecutor = actorSystem.getDispatcher
 
     // grab the neurons to which to send the initial signals
-    logger.info("sending request to retrieve neurons")
-    val runEnvironmentFuture: Future[ActorRef] = ask(network, RetrieveNeurons(inputNeuronSelector)).mapTo[List[ActorRef]]
+    logger.info("sending request to retrieve input neurons")
+    val runEnvironmentFuture: Future[ActorRef] = ask(network, RetrieveNeurons(inputNeuronSelector))
+      .mapTo[List[ActorRef]]
       .flatMap(inputNeurons => {
         logger.info(s"injection neurons: ${inputNeurons.sortBy(ref => ref.path.name).map(neuron => neuron.path.name)}")
 
