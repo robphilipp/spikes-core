@@ -166,14 +166,14 @@ class SeriesRunner(timeFactor: Int = 1,
   }
 
   /**
-    * Adds a sensor to each network in the series and returns a [[Future]] holding a list `(network-name, sensor-name)`
+    * Adds a sensor to each network in the series and returns a Future holding a list `(network-name, sensor-name)`
     * tuples.
     *
     * @param sensorName the name of the sensor
     * @param neuronSelector The regular expression used to select the valid neurons for the sensor
     * @param networkResults The results of creating the network that holds, for each network, the actor
     *                       system, the reference to the network actor, and a map of the remote groups
-    * @return A [[Future]] with a list `(network-name, sensor-name)` tuples for the successfully created sensors.
+    * @return A Future with a list `(network-name, sensor-name)` tuples for the successfully created sensors.
     */
   def addSensor(sensorName: String,
                 neuronSelector: Regex,
@@ -195,8 +195,11 @@ class SeriesRunner(timeFactor: Int = 1,
             clock = initializeSimulationTimes(timeFactor: Int),
             cleanup = shutdownSystemFunctionFactory(system, result.remoteGroups, portManager)
           )
-          val updatedSensors = networkSensors.getOrElse(system.name, () => Map[String, ActorRef]()) + sensorName -> sensor
-          networkSensors += system.name -> updatedSensors
+          val updatedSensors = networkSensors
+            .get(system.name)
+            .map(sensors => sensors + (sensorName -> sensor))
+            .getOrElse(Map(sensorName -> sensor))
+          networkSensors = networkSensors + (system.name -> updatedSensors)
           SensorAddResult(system.name, sensorName, neurons.map(neuron => neuron.path.name))
         })
     })
@@ -329,7 +332,8 @@ class SeriesRunner(timeFactor: Int = 1,
   }
 
   /**
-    * Sends a signal to the sensor actor that will send signals the specified neurons
+    * Sends a signal to the sensor actor which in turn forwards the signal to the specified
+    * neurons (as long as they are attached to the sensor)
     * @param sensorName The name of the sensor
     * @param signal The signal
     * @param neuronIds The IDs of the neurons to which to send the signal

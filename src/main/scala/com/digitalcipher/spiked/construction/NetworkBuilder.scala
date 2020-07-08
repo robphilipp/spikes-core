@@ -67,7 +67,7 @@ class NetworkBuilder(val timeFactor: Int, groupActorSystems: Map[String, RemoteG
     *
     * @param description    The network description
     * @param deploymentName The deployment name
-    * @return A [[scala.concurrent.Future]] holding the [[akka.actor.ActorRef]] of the network
+    * @return A Future holding the ActorRef of the network
     */
   def networkFrom(description: NetworkDescription, deploymentName: String): Future[ActorRef] = {
     // create the neuron network (holds the topology of the network)
@@ -283,7 +283,7 @@ object NetworkBuilder {
     *
     * @param timeFactor The simulation time factor. Every N seconds of real-time is timeFactor * N seconds of
     *                   simulation (i.e. if timeFactor=10 then 10 seconds of simulation is 1 second of real time).
-    * @return The [[akka.actor.Props]] for the actor
+    * @return The Props for the actor
     */
   def props(timeFactor: Int, groupActorSystems: Map[String, RemoteGroupInfo]): Props = Props(new NetworkBuilder(timeFactor, groupActorSystems))
 

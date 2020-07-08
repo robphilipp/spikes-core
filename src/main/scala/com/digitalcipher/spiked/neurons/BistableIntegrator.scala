@@ -593,12 +593,12 @@ class BistableIntegrator(timeFactor: Int,
 }
 
 /**
-  * Companion object for [[com.digitalcipher.spiked.neurons.BistableIntegrator]] class used for constructing validated instances
+  * Companion object for BistableIntegrator class used for constructing validated instances
   */
 object BistableIntegrator {
 
   /**
-    * Constructs a [[com.digitalcipher.spiked.neurons.BistableIntegrator]] wrapped in an [[akka.actor.ActorRef]] instance
+    * Constructs a BistableIntegrator wrapped in an ActorRef instance
     *
     * @param id                   The unique ID of the neuron
     * @param timeFactor           The simulation time-factor (1 second simulation time is F seconds in real-time)
@@ -622,7 +622,7 @@ object BistableIntegrator {
     * @param intrinsicPlasticityLearningRate  The rate of learning for the intrinsic plasticity
     * @param intrinsicPlasticityBase          The base of the intrinsic learning
     * @param intrinsicPlasticityDecayHalfLife The half-life of the intrinsic learning decay
-    * @return An [[akka.actor.ActorRef]] wrapping a [[com.digitalcipher.spiked.neurons.BistableIntegrator]]
+    * @return An ActorRef wrapping a BistableIntegrator
     */
   def props(id: String,
             timeFactor: Int,
@@ -688,7 +688,7 @@ object BistableIntegrator {
     * The constant firing rate function
     *
     * @param rate The firing rate when the neuron is in the limit-cycle (tonic firing rate)
-    * @return The constant [[squants.time.Frequency]] specified
+    * @return The constant Frequency specified
     */
   def defaultFiringRate(rate: Frequency): ElectricPotential => Frequency = (_: ElectricPotential) => rate
 
@@ -709,7 +709,7 @@ object BistableIntegrator {
     * @param maxRate  The maximum tonic firing rate
     * @param invSlope The measure of flatness (i.e. 1/slope)
     * @param offset   The offset of the center frequency
-    * @return The tonic firing rate as a [[squants.time.Frequency]]
+    * @return The tonic firing rate as a Frequency
     */
   def sigmoidFiringRate(minRate: Frequency,
                         maxRate: Frequency,

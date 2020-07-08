@@ -28,7 +28,7 @@ object SpikesAppUtils {
     * library's resources.
     *
     * @param configFilename The name of the application's configuration file
-    * @return The [[com.typesafe.config.Config]] based on the specified config file name and the base config
+    * @return The Config based on the specified config file name and the base config
     */
   def loadConfigFrom(configFilename: String = "application.conf"): Config =
     ConfigFactory.parseResources(configFilename).withFallback(ConfigFactory.load()).resolve()

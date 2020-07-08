@@ -700,12 +700,12 @@ class MonostableIntegrator(timeFactor: Int,
 }
 
 /**
-  * Companion object for [[com.digitalcipher.spiked.neurons.MonostableIntegrator]] class used for constructing validated instances
+  * Companion object for MonostableIntegrator class used for constructing validated instances
   */
 object MonostableIntegrator {
 
   /**
-    * Constructs a [[com.digitalcipher.spiked.neurons.MonostableIntegrator]] wrapped in an [[akka.actor.ActorRef]] instance
+    * Constructs a MonostableIntegrator wrapped in an ActorRef instance
     *
     * @param id                   The unique ID of the neuron
     * @param timeFactor           The simulation time-factor (i.e. for a time factor of N, 1 second simulation time
@@ -721,7 +721,7 @@ object MonostableIntegrator {
     * @param conductanceSpeed     The axon conductance speed (which determines the signal delay)
     * @param inhibitory           `true` when the neuron is inhibitory (i.e. sends negative signals); `false` when neuron is
     *                             excitatory (default) and sends positive signals
-    * @return An [[akka.actor.ActorRef]] wrapping a [[com.digitalcipher.spiked.neurons.MonostableIntegrator]]
+    * @return An ActorRef wrapping a [[MonostableIntegrator]]
     */
   def props(id: String,
             timeFactor: Int,

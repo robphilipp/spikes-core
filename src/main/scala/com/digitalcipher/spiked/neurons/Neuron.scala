@@ -522,7 +522,7 @@ object Neuron {
   /**
     * The message for connecting two neurons
     *
-    * @param postSynaptic      The post-synaptic neuron ([[akka.actor.ActorRef]])
+    * @param postSynaptic      The post-synaptic neuron (ActorRef)
     * @param weight            The synapse weight (i.e. the factor multiplying the membrane potential increase due to an incoming signal)
     * @param equilibriumWeight The equilibrium weight to which the weight decays
     * @param distance          The distance that the neurons are apart
@@ -546,7 +546,7 @@ object Neuron {
   /**
     * The message for adding the pre-synaptic neuron for managing weights in the post-synaptic neuron
     *
-    * @param preSynaptic       The pre-synaptic neuron ([[akka.actor.ActorRef]])
+    * @param preSynaptic       The pre-synaptic neuron (ActorRef)
     * @param postSynaptic      The ID of the connection as held by the pre-synaptic neuron. The neuron in the connection should be
     *                          the post-synaptic neuron (i.e. the one receiving the request to register the pre-synaptic neuron)
     * @param weight            The synapse weight (i.e. the factor multiplying the membrane potential increase due to an incoming signal)
@@ -562,7 +562,7 @@ object Neuron {
   /**
     * Represent a synapse between two neurons
     *
-    * @param preSynapticNeuron The pre-synaptic neuron ([[akka.actor.ActorRef]])
+    * @param preSynapticNeuron The pre-synaptic neuron (ActorRef)
     * @param weight            The synapse weight (i.e. the factor multiplying the membrane potential increase due to an incoming signal)
     */
   case class Synapse(preSynapticNeuron: ActorRef, weight: Double)
