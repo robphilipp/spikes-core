@@ -1,20 +1,21 @@
-package com.digitalcipher.spiked.inputs
+package com.digitalcipher.spiked.inputs.sensors
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.digitalcipher.spiked.construction.NetworkBuilder.RemoteGroupInfo
+import com.digitalcipher.spiked.inputs.EnvironmentFactory
 import com.digitalcipher.spiked.neurons.SignalClock
 import squants.Time
 
 /**
-  * Defines the basic contract that an environment factory must obey in order to be used by the series runner.
+  * Sensors for the input to the neural network. A sensor emits signals to a set of neurons in the
+  * neural network based on external signals.
   */
-trait EnvironmentFactory {
+object SensorFactory extends EnvironmentFactory {
   /**
     * Constructs an instance of the environment actor
     *
     * @param system       The actor system for which to create an environment
-    * @param inputNeurons the list of input neurons (these are merely neurons that will receive signals
-    *                     from the environment).
+    * @param neurons      the list of neurons that will receive the signal from the sensor.
     * @param remoteGroups A `map(remote_group_name -> remote_group_info)` where the remote group info holds
     *                     the name of the remote actor system and the port on which it listens
     * @param clock        The neural network's signal clock
@@ -22,9 +23,9 @@ trait EnvironmentFactory {
     * @return A reference to the environment actor
     */
   def instance(system: ActorSystem,
-               inputNeurons: List[ActorRef],
+               neurons: List[ActorRef],
                remoteGroups: Map[String, RemoteGroupInfo],
                clock: SignalClock,
                cleanup: (Time, Time) => Unit
-              ): ActorRef
+              ): ActorRef = Sensor.from(system, neurons, clock, cleanup)
 }

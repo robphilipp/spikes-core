@@ -7,15 +7,21 @@ import com.digitalcipher.spiked.apputils.SeriesRunner._
 import com.digitalcipher.spiked.apputils.SpikesAppUtils.{buildNetwork, initializeSimulationTimes, shutdownSystemFunctionFactory}
 import com.digitalcipher.spiked.construction.NetworkBuilder.RemoteGroupInfo
 import com.digitalcipher.spiked.inputs.EnvironmentFactory
+import com.digitalcipher.spiked.inputs.sensors.Sensor.SendSignals
+import com.digitalcipher.spiked.inputs.sensors.{Sensor, SensorFactory}
 import com.digitalcipher.spiked.logging.EventLogger
 import com.digitalcipher.spiked.logging.FileEventLogger.FileLoggingConfiguration
 import com.digitalcipher.spiked.logging.KafkaEventLogger.KafkaConfiguration
-import com.digitalcipher.spiked.neurons.SignalClock
+import com.digitalcipher.spiked.neurons.{Signal, SignalClock}
 import com.digitalcipher.spiked.topology.Network.{RetrieveNeurons, SimulationStart, SimulationStartResponse}
 import com.typesafe.config.{Config, ConfigValueFactory}
 import org.slf4j.{Logger, LoggerFactory}
+import squants.electro.ElectricPotential
 
-import scala.concurrent.{Await, ExecutionContextExecutor, Future}
+import scala.collection.immutable
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor, Future}
+import scala.util.{Failure, Success, Try}
 import scala.util.matching.Regex
 
 /**
@@ -84,6 +90,10 @@ class SeriesRunner(timeFactor: Int = 1,
 
   // the default port for remoting, in case no list of remoting ports was specified
   private val defaultRemotingPort = config.getInt("akka.remote.netty.tcp.port")
+
+  // holds all the sensors that have been added to the run (map(actor_system_name -> map(sensor_name -> sensor)))
+  private var networkSensors: Map[String, Map[String, ActorRef]] = Map()
+//  private var networkSensors: Map[String, Regex] = Map()
 
   /**
     * Creates a set of actor-systems and neural networks and returns a [[com.digitalcipher.spiked.apputils.SeriesRunner]]
@@ -156,6 +166,88 @@ class SeriesRunner(timeFactor: Int = 1,
   }
 
   /**
+    * Adds a sensor to each network in the series and returns a [[Future]] holding a list `(network-name, sensor-name)`
+    * tuples.
+    *
+    * @param sensorName the name of the sensor
+    * @param neuronSelector The regular expression used to select the valid neurons for the sensor
+    * @param networkResults The results of creating the network that holds, for each network, the actor
+    *                       system, the reference to the network actor, and a map of the remote groups
+    * @return A [[Future]] with a list `(network-name, sensor-name)` tuples for the successfully created sensors.
+    */
+  def addSensor(sensorName: String,
+                neuronSelector: Regex,
+                networkResults: List[CreateNetworkResult]
+               ): Future[List[SensorAddResult]] = {
+    import akka.pattern.ask
+    implicit val timeout: Timeout = Timeout(10 seconds)
+
+    val sensorsFuture = networkResults.map(result => {
+      implicit val executionContext: ExecutionContextExecutor = result.system.getDispatcher
+      val system = result.system
+
+      ask(result.network, RetrieveNeurons(neuronSelector))
+        .mapTo[List[ActorRef]]
+        .map(neurons => {
+          val sensor = Sensor.from(
+            system = system,
+            neurons = neurons,
+            clock = initializeSimulationTimes(timeFactor: Int),
+            cleanup = shutdownSystemFunctionFactory(system, result.remoteGroups, portManager)
+          )
+          val updatedSensors = networkSensors.getOrElse(system.name, () => Map[String, ActorRef]()) + sensorName -> sensor
+          networkSensors += system.name -> updatedSensors
+          SensorAddResult(system.name, sensorName, neurons.map(neuron => neuron.path.name))
+        })
+    })
+
+    // todo return the failures as well
+    // convert the list(futures(add-results)) to a future(list(add-results))
+    implicit val execContext: ExecutionContext = ExecutionContext.global
+    Future
+      // convert the future to a future-try
+      .sequence(sensorsFuture.map(future => future.map(ar => Success(ar)).recover {case thr => Failure(thr)}))
+      // grab only the success and return it
+      .map(_.collect {case Success(x) => x})
+  }
+//
+//  implicit val execContext: ExecutionContext = ExecutionContext.global
+//  def futureToFutureTry[T](future: Future[T]): Future[Try[T]] = future.map(Success(_)).recover {case x => Failure(x)}
+//  /**
+//    * Adds a sensor to each network in the series and returns a [[Future]] holding a list `(network-name, sensor-name)`
+//    * tuples.
+//    *
+//    * @param sensorName the name of the sensor
+//    * @param neuronSelector The regular expression used to select the valid neurons for the sensor
+//    * @param result The results of creating the network that holds the actor system, the reference to
+//    *               the network actor, and a map of the remote groups
+//    * @return A [[Future]] with a list `(network-name, sensor-name)` tuples for the successfully created sensors.
+//    */
+//  def addSensor(sensorName: String, neuronSelector: Regex, result: CreateNetworkResult): Future[(String, String)] = {
+//    import akka.pattern.ask
+//    implicit val timeout: Timeout = Timeout(10 seconds)
+//    implicit val executionContext: ExecutionContextExecutor = result.system.getDispatcher
+//    val system = result.system
+//
+//    ask(result.network, RetrieveNeurons(neuronSelector))
+//      .mapTo[List[ActorRef]]
+//      .map(neurons => {
+//        val sensor = Sensor.from(
+//          system = system,
+//          neurons = neurons,
+//          clock = initializeSimulationTimes(timeFactor: Int),
+//          cleanup = shutdownSystemFunctionFactory(system, result.remoteGroups, portManager)
+//        )
+//        val updatedSensors = networkSensors.getOrElse(system.name, () => Map[String, ActorRef]()) + sensorName -> sensor
+//        networkSensors += system.name -> updatedSensors
+//        (system.name, sensorName)
+//      })
+//  }
+
+//  implicit val execContext: ExecutionContext = ExecutionContext.global
+//  def futureToFutureTry[T](future: Future[T]): Future[Try[T]] = future.map(Success(_)).recover {case x => Failure(x)}
+
+  /**
     * Runs the simulation series for each of the created actor systems and neural network. This call creates
     * and environment for each actor-system (i.e. neural network), and has the environment start sending
     * signals to the neurons specified as ''input neurons''.
@@ -164,6 +256,7 @@ class SeriesRunner(timeFactor: Int = 1,
     * @param environmentFactory The factory for creating an environment that sends signals to the neural network.
     * @param inputNeuronSelector The regular expression used to select the input neurons from the network
     */
+    // todo return a future(list(actor-ref))
   def runSimulationSeries(networkResults: List[CreateNetworkResult],
                           environmentFactory: EnvironmentFactory,
                           inputNeuronSelector: Regex): Unit = {
@@ -180,8 +273,6 @@ class SeriesRunner(timeFactor: Int = 1,
     })
   }
 
-  import scala.concurrent.duration._
-
   /**
     * Provides the set-up of the environment that sends signals to the network, and then sends the signals. Recall
     * that until the actor-system is shut down, as long as signals are sent to the network, the network will respond.
@@ -196,6 +287,7 @@ class SeriesRunner(timeFactor: Int = 1,
     * @param environmentSetupWaitTime The amount of time to wait for the run-environment to get set up
     * @return A reference to the environment actor
     */
+    // todo return a future(actor-ref)
   private def runSimulation(actorSystem: ActorSystem,
                             remoteGroups: Map[String, RemoteGroupInfo],
                             network: ActorRef,
@@ -234,6 +326,25 @@ class SeriesRunner(timeFactor: Int = 1,
 
     // wait for it all to get set up
     Await.result(runEnvironmentFuture, environmentSetupWaitTime)
+  }
+
+  /**
+    * Sends a signal to the sensor actor that will send signals the specified neurons
+    * @param sensorName The name of the sensor
+    * @param signal The signal
+    * @param neuronIds The IDs of the neurons to which to send the signal
+    * @param systems The actor systems to which to send the sensor signals
+    */
+  def sendSensorSignal(sensorName: String,
+                       signal: ElectricPotential,
+                       neuronIds: Seq[String],
+                       systems: Seq[ActorSystem]
+                      ): Unit = {
+    systems.foreach(system =>
+      networkSensors.get(system.name).foreach(sensors =>
+        sensors.get(sensorName).foreach(sensor => sensor ! SendSignals(neuronIds, signal))
+      )
+    )
   }
 }
 
@@ -294,4 +405,6 @@ object SeriesRunner {
       */
     def successes: List[CreateNetworkResult] = results.filter(either => either.isRight).map(either => either.right.get)
   }
+
+  case class SensorAddResult(networkName: String, sensorName: String, neuronIds: Seq[String]);
 }

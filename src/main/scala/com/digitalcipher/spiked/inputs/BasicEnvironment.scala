@@ -47,7 +47,9 @@ class BasicEnvironment(neurons: Seq[ActorRef],
   ) {
 
   /**
-    * Determines the signal to send to the neurons based on the signals-function specified in the constructor
+    * Determines the signal to send to the neurons based on the signals-function specified in the constructor.
+    * This method is called from the periodically scheduled [[com.digitalcipher.spiked.inputs.sensors.Sensor.SendSignals]]
+    * message in the [[Environment]] base class.
     *
     * @param neurons The ``input`` neurons
     * @param time    The current time, referenced to the beginning of the simulation

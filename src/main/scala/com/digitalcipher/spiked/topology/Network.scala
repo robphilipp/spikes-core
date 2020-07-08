@@ -148,8 +148,7 @@ class Network extends Actor {
       sender() ! connectNeurons(connections)
 
       // send LocationDescription instead of locations
-    case AddInputNeuron(preSynaptic, location) =>
-      addByType(preSynaptic, location.cartesian, NeuronType.Input)
+    case AddInputNeuron(preSynaptic, location) => addByType(preSynaptic, location.cartesian, NeuronType.Input)
 
     case AddHiddenNeuron(preSynaptic, location) => addByType(preSynaptic, location.cartesian, NeuronType.Hidden)
     case AddOutputNeuron(preSynaptic, location) => addByType(preSynaptic, location.cartesian, NeuronType.Output)
@@ -157,8 +156,7 @@ class Network extends Actor {
       connect(preSynaptic, postSynaptic, initialWeight, equilibriumWeight, learning)
 
     // retrieve the neuron references
-    case RetrieveNeurons(pattern) =>
-      sender() ! neuronsOfPattern(pattern).toList
+    case RetrieveNeurons(pattern) => sender() ! neuronsOfPattern(pattern).toList
 
     case RetrieveInputNeurons => sender() ! neuronsOfType(NeuronType.Input)
     case RetrieveHiddenNeurons => sender() ! neuronsOfType(NeuronType.Hidden)
@@ -172,8 +170,7 @@ class Network extends Actor {
     case NeuronOfType(neuron) => sender() ! neurons(neuron)._2
 
     // sets the initial time on all the neurons
-    case SimulationStart(time) =>
-      sender() ! setInitialTime(time)
+    case SimulationStart(time) => sender() ! setInitialTime(time)
 
     //case Config() => returns all the current settings (neuron ID, connections/weights, threshold, spike potential, decay, refractory period, ... )
     //case Stats() => returns all the current settings (neuron ID, connections/weights, membrane potential, last spike time, ... )
