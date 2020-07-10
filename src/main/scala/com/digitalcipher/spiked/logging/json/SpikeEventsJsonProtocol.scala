@@ -129,16 +129,16 @@ object SpikeEventsJsonProtocol extends DefaultJsonProtocol {
     * Electrical potential, holding the dimension and the units (i.e. mV)
     */
   implicit object ElectricPotentialJsonFormat extends RootJsonFormat[ElectricPotential] {
-    override def write(time: ElectricPotential): JsValue = JsObject(
-      "value" -> JsNumber(time.toMillivolts),
-      "units" -> JsString(time.unit.symbol)
+    override def write(potential: ElectricPotential): JsValue = JsObject(
+      "value" -> JsNumber(potential.toMillivolts),
+      "units" -> JsString(potential.unit.symbol)
     )
 
     override def read(value: JsValue): ElectricPotential = value.asJsObject.getFields("value", "units") match {
-      case Seq(JsNumber(time), JsString(units)) => units match {
-        case Microseconds.symbol => Microvolts(time)
-        case Milliseconds.symbol => Millivolts(time)
-        case Seconds.symbol => Volts(time)
+      case Seq(JsNumber(potential), JsString(units)) => units match {
+        case Microvolts.symbol => Microvolts(potential)
+        case Millivolts.symbol => Millivolts(potential)
+        case Seconds.symbol => Volts(potential)
         case _ => deserializationError("(value, units) expected")
       }
     }

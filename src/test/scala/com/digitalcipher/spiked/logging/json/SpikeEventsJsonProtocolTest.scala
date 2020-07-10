@@ -12,7 +12,8 @@ class SpikeEventsJsonProtocolTest extends WordSpecLike with Matchers with Option
 
   "connection to post-synaptic neuron" must {
     val connection = ConnectedPostSynaptic("pre", "post", Milliseconds(314))
-    val json = "{\"pre_synaptic\":\"pre\",\"post_synaptic\":\"post\",\"signal_delay\":314}"
+//    val json = "{\"pre_synaptic\":\"pre\",\"post_synaptic\":\"post\",\"signal_delay\":314}"
+    val json = """{"pre_synaptic":"pre","post_synaptic":"post","signal_delay":314}"""
 
     "convert to json" in {
       connection.toJson.compactPrint == json

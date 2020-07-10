@@ -8,19 +8,9 @@ import squants.electro.ElectricPotential
 import squants.time.Milliseconds
 
 /**
-  * Factory for creating a basic environment that periodically sends signals to the input neurons.
-  *
-  * @param initialDelay The time between the simulation start and the first signal
-  * @param signalPeriod The period between calls to the signals function (i.e. 50 ms)
-  * @param simulationDuration The duration of the simulation
-  * @param signalsFunction The function that accepts a sequence of neuron actor references and a time and returns
-  *                        a map that holds the neuron actor references to their associated signal. Note that there
-  *                        is no requirement that all specified neurons receive a signal.
+  * Factory for creating a basic environment that sends no signals.
   */
-case class PeriodicEnvironmentFactory(initialDelay: Time = Milliseconds(0),
-                                      signalPeriod: Time,
-                                      simulationDuration: Time,
-                                      signalsFunction: (Seq[ActorRef], Time) => Map[ActorRef, ElectricPotential]) extends EnvironmentFactory {
+case class QuiescentEnvironmentFactory() extends EnvironmentFactory {
 
   import scala.concurrent.duration._
 
@@ -45,10 +35,10 @@ case class PeriodicEnvironmentFactory(initialDelay: Time = Milliseconds(0),
       system = system,
       neurons = inputNeurons,
       clock = clock,
-      initialDelay = (initialDelay * clock.timeFactor).toMilliseconds millis,
-      period = (signalPeriod * clock.timeFactor).toMilliseconds millis, // period between calls to the signals function
-      duration = (simulationDuration * clock.timeFactor).toMilliseconds millis, // duration of the simulation
-      signals = signalsFunction, // function that generates a map(actor-ref -> signal)
+      initialDelay = 100000 days,
+      period = 100000 days, // period between calls to the signals function
+      duration = 100000 days, // duration of the simulation
+      signals = (_, _) => Map(), // function that generates a map(actor-ref -> signal)
       cleanup = cleanup
     )
 }

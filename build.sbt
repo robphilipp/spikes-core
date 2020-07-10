@@ -20,15 +20,16 @@ enablePlugins(JavaAppPackaging)
 //
 lazy val commonSettings = Seq(
   organization := "com.digitalcipher.spiked",
-  version := "0.0.23-snapshot",
-  scalaVersion := "2.12.8"
+  version := "0.0.25-snapshot",
+  scalaVersion := "2.12.9"
+//  scalaVersion := "2.13.3"
 )
 
 //
 // dependencies
 //
 lazy val akkaVersion = "2.5.25"
-lazy val kafkaCakeVersion = "2.1.0"
+lazy val kafkaCakeVersion = "2.3.1"
 lazy val logbackVersion = "1.2.3"
 
 lazy val app = (project in file(".")).
