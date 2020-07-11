@@ -1,10 +1,8 @@
 package com.digitalcipher.spiked.inputs.sensors
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
-import com.digitalcipher.spiked.construction.NetworkBuilder.RemoteGroupInfo
 import com.digitalcipher.spiked.inputs.sensors.Sensor.{SendSignals, Stop}
 import com.digitalcipher.spiked.neurons.{Signal, SignalClock, SignalReceiver}
-import squants.Time
 import squants.electro.ElectricPotential
 import squants.time.Time
 
@@ -49,8 +47,7 @@ class Sensor(neurons: Seq[ActorRef], clock: SignalClock, cleanupFunction: (Time,
         }
 
     // stop sending signals and shut-down this environment actor
-    case Stop =>
-      context.stop(self)
+    case Stop => context.stop(self)
   }
 }
 

@@ -214,43 +214,6 @@ class SeriesRunner(timeFactor: Int = 1,
       .map(_.collect { case Success(x) => x })
   }
 
-  //
-  //  implicit val execContext: ExecutionContext = ExecutionContext.global
-  //  def futureToFutureTry[T](future: Future[T]): Future[Try[T]] = future.map(Success(_)).recover {case x => Failure(x)}
-  //  /**
-  //    * Adds a sensor to each network in the series and returns a [[Future]] holding a list `(network-name, sensor-name)`
-  //    * tuples.
-  //    *
-  //    * @param sensorName the name of the sensor
-  //    * @param neuronSelector The regular expression used to select the valid neurons for the sensor
-  //    * @param result The results of creating the network that holds the actor system, the reference to
-  //    *               the network actor, and a map of the remote groups
-  //    * @return A [[Future]] with a list `(network-name, sensor-name)` tuples for the successfully created sensors.
-  //    */
-  //  def addSensor(sensorName: String, neuronSelector: Regex, result: CreateNetworkResult): Future[(String, String)] = {
-  //    import akka.pattern.ask
-  //    implicit val timeout: Timeout = Timeout(10 seconds)
-  //    implicit val executionContext: ExecutionContextExecutor = result.system.getDispatcher
-  //    val system = result.system
-  //
-  //    ask(result.network, RetrieveNeurons(neuronSelector))
-  //      .mapTo[List[ActorRef]]
-  //      .map(neurons => {
-  //        val sensor = Sensor.from(
-  //          system = system,
-  //          neurons = neurons,
-  //          clock = initializeSimulationTimes(timeFactor: Int),
-  //          cleanup = shutdownSystemFunctionFactory(system, result.remoteGroups, portManager)
-  //        )
-  //        val updatedSensors = networkSensors.getOrElse(system.name, () => Map[String, ActorRef]()) + sensorName -> sensor
-  //        networkSensors += system.name -> updatedSensors
-  //        (system.name, sensorName)
-  //      })
-  //  }
-
-  //  implicit val execContext: ExecutionContext = ExecutionContext.global
-  //  def futureToFutureTry[T](future: Future[T]): Future[Try[T]] = future.map(Success(_)).recover {case x => Failure(x)}
-
   /**
     * Checks that each network (actor system) has at least one sensor
     *
